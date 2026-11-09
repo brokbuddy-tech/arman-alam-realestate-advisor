@@ -1,19 +1,22 @@
+import type { Currency } from '@/lib/currency';
+
 export interface Property {
-  id: number;
+  id: string | number;
   title: string;
   type: string;
   price: number;
   address: string;
   location: string;
   coordinates: {
-    lat: number;
-    lng: number;
+    lat: number | null;
+    lng: number | null;
   };
-  beds: number;
-  baths: number;
+  beds: number | null;
+  baths: number | null;
   sqft: string;
-  rating: number;
+  rating: number | null;
   status: string;
+  permitNumber?: string | null;
   category: string;
   image: string;
   gallery: string[];
@@ -23,10 +26,11 @@ export interface Property {
   agent: {
     name: string;
     role: string;
-    rating: number;
-    reviews: number;
+    rating: number | null;
+    reviews: number | null;
     image: string;
   };
+  currency?: Currency;
 }
 
 export const properties: Property[] = [

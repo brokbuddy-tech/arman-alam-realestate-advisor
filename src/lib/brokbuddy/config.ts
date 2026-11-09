@@ -1,15 +1,25 @@
+import "server-only";
+
 export interface BrokBuddyTemplateConfig {
   apiBaseUrl: string;
-  slug: string;
-  templateHexCode: string;
+  brokerCode: string;
+  brokerProfileSlug: string;
 }
 
 export function getBrokBuddyTemplateConfig(): BrokBuddyTemplateConfig | null {
-  const slug = process.env.BROKBUDDY_TEMPLATE_SLUG?.trim();
-  const templateHexCode = process.env.BROKBUDDY_TEMPLATE_HEX_CODE?.trim();
-  const apiBaseUrl = process.env.BROKBUDDY_API_BASE_URL?.trim() || "https://api.brokbuddy.si";
+  const brokerCode = process.env.BROKBUDDY_BROKER_CODE?.trim();
+  const brokerProfileSlug = process.env.BROKBUDDY_BROKER_PROFILE_SLUG?.trim();
+  const apiBaseUrl = process.env.BROKBUDDY_API_BASE_URL?.trim();
 
-  if (!slug || !templateHexCode || !/^[a-f0-9]{32}$/.test(templateHexCode)) {
+  if (
+    !apiBaseUrl ||
+    !brokerCode ||
+    !/^[a-f0-9]{32}$/.test(brokerCode) ||
+    !brokerProfileSlug ||
+    brokerProfileSlug.length < 3 ||
+    brokerProfileSlug.length > 120 ||
+    !/^[a-z0-9-]+$/.test(brokerProfileSlug)
+  ) {
     return null;
   }
 
@@ -20,13 +30,19 @@ export function getBrokBuddyTemplateConfig(): BrokBuddyTemplateConfig | null {
     return null;
   }
 
-  if (parsedApiBaseUrl.protocol !== "https:" && parsedApiBaseUrl.protocol !== "http:") {
+  if (
+    parsedApiBaseUrl.protocol !== "https:" ||
+    parsedApiBaseUrl.username ||
+    parsedApiBaseUrl.password ||
+    parsedApiBaseUrl.search ||
+    parsedApiBaseUrl.hash
+  ) {
     return null;
   }
 
   return {
     apiBaseUrl: apiBaseUrl.replace(/\/+$/, ""),
-    slug,
-    templateHexCode,
+    brokerCode,
+    brokerProfileSlug,
   };
 }

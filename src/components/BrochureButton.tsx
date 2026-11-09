@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { Download, MapPin, Bed, Bath, Square, CheckCircle2, QrCode } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { broker } from '@/data/broker';
+import { useBrokBuddyData } from '@/context/BrokBuddyContext';
 import type { Property } from '@/data/properties';
 
 // We need to import jspdf and html2canvas, but they are client-side only.
@@ -14,6 +15,8 @@ export function BrochureButton({ property }: { property: Property }) {
   const brochureRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { formatPrice } = useCurrency();
+  const { broker: scopedBroker } = useBrokBuddyData();
+  const displayedBroker = scopedBroker ?? broker;
 
   const handleDownload = async () => {
     if (!brochureRef.current || isGenerating) return;
@@ -80,8 +83,8 @@ export function BrochureButton({ property }: { property: Property }) {
             
             {/* Logo/Brand */}
             <div className="absolute top-8 left-8">
-              <h1 className="text-3xl font-black text-white tracking-tighter">{broker.name}</h1>
-              <p className="text-[#FFDE02] font-bold text-sm tracking-widest uppercase">{broker.role}</p>
+              <h1 className="text-3xl font-black text-white tracking-tighter">{displayedBroker.name}</h1>
+              <p className="text-[#FFDE02] font-bold text-sm tracking-widest uppercase">{displayedBroker.role}</p>
             </div>
 
             {/* Property Title & Price */}
@@ -96,7 +99,7 @@ export function BrochureButton({ property }: { property: Property }) {
                   {property.address}
                 </div>
                 <div className="text-4xl font-black text-[#FFDE02]">
-                  {formatPrice(property.price)}
+                  {formatPrice(property.price, property.currency)}
                 </div>
               </div>
             </div>
@@ -108,12 +111,12 @@ export function BrochureButton({ property }: { property: Property }) {
             <div className="grid grid-cols-4 gap-6 mb-10 pb-10 border-b border-neutral-200">
               <div className="bg-neutral-50 rounded-2xl p-6 text-center border border-neutral-100">
                 <Bed className="w-8 h-8 mx-auto mb-3 text-neutral-400" />
-                <div className="text-3xl font-black text-[#111812]">{property.beds}</div>
+                <div className="text-3xl font-black text-[#111812]">{property.beds ?? '—'}</div>
                 <div className="text-sm font-bold text-neutral-500 uppercase tracking-wider mt-1">Bedrooms</div>
               </div>
               <div className="bg-neutral-50 rounded-2xl p-6 text-center border border-neutral-100">
                 <Bath className="w-8 h-8 mx-auto mb-3 text-neutral-400" />
-                <div className="text-3xl font-black text-[#111812]">{property.baths}</div>
+                <div className="text-3xl font-black text-[#111812]">{property.baths ?? '—'}</div>
                 <div className="text-sm font-bold text-neutral-500 uppercase tracking-wider mt-1">Bathrooms</div>
               </div>
               <div className="bg-neutral-50 rounded-2xl p-6 text-center border border-neutral-100">

@@ -6,24 +6,13 @@ import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 import { ArrowUpRight, Bed, Bath, Square, Star } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
-import { getBrokerInitials, type BrokerProfile as BrokerProfileData } from '@/data/broker';
+import { broker as fallbackBroker, getBrokerInitials } from '@/data/broker';
+import { useBrokBuddyData } from '@/context/BrokBuddyContext';
 
-interface Property {
-  id: number;
-  title: string;
-  location: string;
-  price: number;
-  type: string;
-  category: string;
-  beds: number;
-  baths: number;
-  sqft: string;
-  rating: number;
-  image: string;
-}
-
-export default function BrokerProfile({ broker, properties }: { broker: BrokerProfileData; properties: Property[] }) {
+export default function BrokerProfile() {
   const { formatPrice } = useCurrency();
+  const { broker: scopedBroker, properties, isConfigured } = useBrokBuddyData();
+  const broker = scopedBroker ?? fallbackBroker;
   const profileFacts = [
     broker.yearsOfExperience !== null ? { label: 'Years of experience', value: `${broker.yearsOfExperience}+` } : null,
     broker.listingCount !== null ? { label: 'Listings', value: broker.listingCount } : null,
@@ -156,7 +145,11 @@ export default function BrokerProfile({ broker, properties }: { broker: BrokerPr
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-3">Property listings</h2>
-            <p className="text-sm text-neutral-500 mb-12">Showing the site’s current local listings until the BrokBuddy template is configured.</p>
+            <p className="text-sm text-neutral-500 mb-12">
+              {isConfigured
+                ? `Showing ${broker.name}’s public listings.`
+                : 'Public listings are currently unavailable. Please check back later.'}
+            </p>
           </motion.div>
 
           {properties.length === 0 ? (
@@ -196,16 +189,18 @@ export default function BrokerProfile({ broker, properties }: { broker: BrokerPr
                     </div>
 
                     <div className="p-6">
-                      <div className="text-xl font-black text-[#111812] mb-1">{formatPrice(property.price)}</div>
+                      <div className="text-xl font-black text-[#111812] mb-1">{formatPrice(property.price, property.currency)}</div>
                       <h3 className="text-2xl font-bold text-gray-900 mb-2 transition-colors">{property.title}</h3>
                       <p className="text-gray-500 mb-6 text-sm">{property.location}</p>
 
                       <div className="flex items-center justify-between pt-6 border-t border-gray-100 text-gray-600 text-sm">
-                        <div className="flex items-center gap-2"><Bed size={16} /><span>{property.beds}</span></div>
-                        <div className="flex items-center gap-2"><Bath size={16} /><span>{property.baths}</span></div>
+                        <div className="flex items-center gap-2"><Bed size={16} /><span>{property.beds ?? '—'}</span></div>
+                        <div className="flex items-center gap-2"><Bath size={16} /><span>{property.baths ?? '—'}</span></div>
                         <div className="flex items-center gap-2"><Square size={16} /><span>{property.sqft}</span></div>
                         <div className="flex items-center gap-1 text-yellow-500 font-medium">
-                          <Star size={16} fill="currentColor" /><span>{property.rating}</span>
+                          {property.rating !== null && (
+                            <><Star size={16} fill="currentColor" /><span>{property.rating}</span></>
+                          )}
                         </div>
                       </div>
                     </div>

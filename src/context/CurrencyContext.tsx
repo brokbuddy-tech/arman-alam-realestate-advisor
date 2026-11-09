@@ -8,7 +8,7 @@ export type { Currency } from '@/lib/currency';
 interface CurrencyContextType {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
-  formatPrice: (usdPrice: number) => string;
+  formatPrice: (price: number, sourceCurrency?: Currency) => string;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -17,7 +17,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrency] = useState<Currency>('USD');
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatPrice: (price) => formatPrice(price, currency) }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, formatPrice: (price, sourceCurrency) => formatPrice(price, currency, sourceCurrency) }}>
       {children}
     </CurrencyContext.Provider>
   );

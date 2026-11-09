@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import type { Map as LeafletMap, Marker as LeafletMarker } from 'leaflet';
 import type { Property } from '@/data/properties';
 import { useCurrency } from '@/context/CurrencyContext';
 
 interface PropertyMapProps {
   properties: Property[];
-  selectedPropertyId: number | null;
-  hoveredPropertyId: number | null;
+  selectedPropertyId: Property['id'] | null;
+  hoveredPropertyId: Property['id'] | null;
   onSelectProperty: (property: Property) => void;
   centerLocation?: { lat: number; lng: number } | null;
 }
@@ -20,14 +21,23 @@ export default function PropertyMap({
   centerLocation,
 }: PropertyMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<{ [id: number]: any }>({});
+  const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const markersRef = useRef<Record<string, LeafletMarker>>({});
   const { formatPrice } = useCurrency();
 
   // Helper to format short price badge (e.g., $4.5M, $1.9k)
-  const formatShortPrice = (price: number) => {
-    return formatPrice(price);
+  const formatShortPrice = (price: number, currency?: Property['currency']) => {
+    return formatPrice(price, currency);
   };
+
+  const escapeHtml = (value: string) =>
+    value.replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    })[character] ?? character);
 
   useEffect(() => {
     let isMounted = true;
@@ -73,13 +83,13 @@ export default function PropertyMap({
   }, []);
 
   // Update Markers whenever properties, selectedPropertyId, or currency changes
-  const updateMarkers = async (LeafletModule?: any) => {
+  async function updateMarkers(LeafletModule?: typeof import('leaflet')) {
     if (!mapInstanceRef.current) return;
     const L = LeafletModule || (await import('leaflet')).default;
     const map = mapInstanceRef.current;
 
     // Clear previous markers
-    Object.values(markersRef.current).forEach((marker: any) => marker.remove());
+    Object.values(markersRef.current).forEach((marker) => marker.remove());
     markersRef.current = {};
 
     if (properties.length === 0) return;
@@ -87,11 +97,17 @@ export default function PropertyMap({
     const bounds: [number, number][] = [];
 
     properties.forEach((prop) => {
-      if (!prop.coordinates) return;
+      const { lat, lng } = prop.coordinates;
+      if (lat === null || lng === null) return;
 
       const isSelected = selectedPropertyId === prop.id;
       const isHovered = hoveredPropertyId === prop.id;
-      const priceStr = formatShortPrice(prop.price);
+      const priceStr = escapeHtml(formatShortPrice(prop.price, prop.currency));
+      const title = escapeHtml(prop.title);
+      const image = escapeHtml(prop.image);
+      const status = escapeHtml(prop.status);
+      const type = escapeHtml(prop.type);
+      const location = escapeHtml(prop.location || prop.address);
 
       // Create custom HTML DivIcon
       const markerHtml = `
@@ -120,7 +136,7 @@ export default function PropertyMap({
         popupAnchor: [0, -40],
       });
 
-      const marker = L.marker([prop.coordinates.lat, prop.coordinates.lng], {
+      const marker = L.marker([lat, lng], {
         icon: customIcon,
         zIndexOffset: isSelected || isHovered ? 1000 : 0,
       }).addTo(map);
@@ -129,21 +145,21 @@ export default function PropertyMap({
       const popupHtml = `
         <div class="w-64 bg-white rounded-2xl overflow-hidden font-sans">
           <div class="relative h-32 w-full bg-neutral-100">
-            <img src="${prop.image}" alt="${prop.title}" class="w-full h-full object-cover" />
+            <img src="${image}" alt="${title}" class="w-full h-full object-cover" />
             <div class="absolute top-2 left-2 bg-black/75 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-              ${prop.status}
+              ${status}
             </div>
             <div class="absolute top-2 right-2 bg-[#FFDE02] text-black text-[10px] font-bold px-2 py-0.5 rounded-full">
-              ${prop.type}
+              ${type}
             </div>
           </div>
           <div class="p-3">
             <div class="text-base font-black text-neutral-900 mb-0.5">${priceStr}</div>
-            <div class="text-xs font-bold text-neutral-800 line-clamp-1 mb-1">${prop.title}</div>
-            <div class="text-[11px] text-neutral-500 line-clamp-1 mb-2">📍 ${prop.location || prop.address}</div>
+            <div class="text-xs font-bold text-neutral-800 line-clamp-1 mb-1">${title}</div>
+            <div class="text-[11px] text-neutral-500 line-clamp-1 mb-2">📍 ${location}</div>
             <div class="flex items-center justify-between text-[11px] font-medium text-neutral-600 border-t border-neutral-100 pt-2 mb-3">
-              <span>🛏️ ${prop.beds} Beds</span>
-              <span>🛁 ${prop.baths} Baths</span>
+              <span>🛏️ ${prop.beds ?? '—'} Beds</span>
+              <span>🛁 ${prop.baths ?? '—'} Baths</span>
               <span>📐 ${prop.sqft}</span>
             </div>
             <a href="/listings/${prop.id}" class="block text-center w-full bg-[#111812] text-white py-2 rounded-xl text-xs font-bold hover:bg-neutral-800 transition-colors">
@@ -162,15 +178,15 @@ export default function PropertyMap({
         onSelectProperty(prop);
       });
 
-      markersRef.current[prop.id] = marker;
-      bounds.push([prop.coordinates.lat, prop.coordinates.lng]);
+      markersRef.current[String(prop.id)] = marker;
+      bounds.push([lat, lng]);
     });
 
     // Auto fit bounds if properties exist and no custom center
     if (!centerLocation && bounds.length > 0) {
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
     }
-  };
+  }
 
   // Re-run marker update when dependencies change
   useEffect(() => {
@@ -188,8 +204,8 @@ export default function PropertyMap({
 
   // Open popup when selectedPropertyId changes
   useEffect(() => {
-    if (selectedPropertyId && markersRef.current[selectedPropertyId] && mapInstanceRef.current) {
-      const marker = markersRef.current[selectedPropertyId];
+    if (selectedPropertyId !== null && markersRef.current[String(selectedPropertyId)] && mapInstanceRef.current) {
+      const marker = markersRef.current[String(selectedPropertyId)];
       marker.openPopup();
       const pos = marker.getLatLng();
       mapInstanceRef.current.flyTo(pos, 14, { duration: 1 });
@@ -213,7 +229,7 @@ export default function PropertyMap({
         onClick={() => {
           if (mapInstanceRef.current && properties.length > 0) {
             const validCoords = properties
-              .filter((p) => p.coordinates)
+              .filter((p) => p.coordinates.lat !== null && p.coordinates.lng !== null)
               .map((p) => [p.coordinates.lat, p.coordinates.lng] as [number, number]);
             if (validCoords.length > 0) {
               mapInstanceRef.current.fitBounds(validCoords, { padding: [50, 50], maxZoom: 13 });
@@ -227,4 +243,3 @@ export default function PropertyMap({
     </div>
   );
 }
-

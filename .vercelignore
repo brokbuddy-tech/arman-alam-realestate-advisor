@@ -1,0 +1,12 @@
+.git
+.next
+.vercel
+node_modules
+.env*
+.aws
+.agents
+.codex
+.qodo
+coverage
+*.log
+*.tsbuildinfo

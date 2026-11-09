@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 import BlurReveal from '@/components/ui/blur-reveal';
 import { useCurrency } from '@/context/CurrencyContext';
-import { properties as allProperties, type Property } from '@/data/properties';
+import { useBrokBuddyData } from '@/context/BrokBuddyContext';
+import type { Property } from '@/data/properties';
 
 // Dynamically import PropertyMap with SSR disabled to avoid leaflet window errors
 const PropertyMap = dynamic(() => import('@/components/PropertyMap'), {
@@ -53,12 +54,13 @@ const propertyTypes = ['All', 'Villa', 'Apartment', 'Cottage', 'Office'];
 
 export default function MapPage() {
   const { formatPrice } = useCurrency();
+  const { properties: allProperties } = useBrokBuddyData();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNeighborhood, setSelectedNeighborhood] = useState('All UAE');
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeType, setActiveType] = useState('All');
-  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
-  const [hoveredPropertyId, setHoveredPropertyId] = useState<number | null>(null);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<Property['id'] | null>(null);
+  const [hoveredPropertyId, setHoveredPropertyId] = useState<Property['id'] | null>(null);
   const [centerLocation, setCenterLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [viewMode, setViewMode] = useState<'split' | 'map' | 'list'>('split');
   const [listColumns, setListColumns] = useState<1 | 2>(2);
@@ -93,7 +95,7 @@ export default function MapPage() {
       }
       return true;
     });
-  }, [searchQuery, selectedNeighborhood, activeCategory, activeType]);
+  }, [allProperties, searchQuery, selectedNeighborhood, activeCategory, activeType]);
 
   const handleSelectPropertyFromMap = (property: Property) => {
     setSelectedPropertyId(property.id);
@@ -106,8 +108,8 @@ export default function MapPage() {
 
   const handleLocateProperty = (property: Property) => {
     setSelectedPropertyId(property.id);
-    if (property.coordinates) {
-      setCenterLocation(property.coordinates);
+    if (property.coordinates.lat !== null && property.coordinates.lng !== null) {
+      setCenterLocation({ lat: property.coordinates.lat, lng: property.coordinates.lng });
     }
   };
 
@@ -385,14 +387,14 @@ export default function MapPage() {
                       <div className="p-4">
                         <div className="flex items-baseline justify-between mb-1">
                           <div className="text-lg font-black text-[#111812]">
-                            {formatPrice(property.price)}
+                            {formatPrice(property.price, property.currency)}
                             {property.category === 'For Rent' && (
                               <span className="text-[11px] font-medium text-neutral-500"> / mo</span>
                             )}
                           </div>
                           <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            <span>{property.rating}</span>
+                            <span>{property.rating ?? '—'}</span>
                           </div>
                         </div>
 
@@ -472,4 +474,3 @@ export default function MapPage() {
     </div>
   );
 }
-

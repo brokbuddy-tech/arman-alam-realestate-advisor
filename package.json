@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "node --experimental-strip-types --conditions=react-server --test src/data/*.test.mjs src/lib/*.test.mjs src/lib/brokbuddy/*.test.mjs",
     "lint": "eslint"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {

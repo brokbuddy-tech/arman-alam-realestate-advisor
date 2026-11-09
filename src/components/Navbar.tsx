@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useCurrency, type Currency } from "@/context/CurrencyContext";
 import { broker } from "@/data/broker";
+import { useBrokBuddyData } from "@/context/BrokBuddyContext";
 
 const navigation = [
   { label: "Profile", href: "/" },
@@ -22,6 +23,8 @@ export default function Navbar() {
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
   const { currency, setCurrency } = useCurrency();
+  const { broker: scopedBroker } = useBrokBuddyData();
+  const displayedBroker = scopedBroker ?? broker;
   const useSolidNavbar = isScrolled || pathname.startsWith("/listings");
 
   useMotionValueEvent(scrollY, "change", (latest) => {
@@ -39,7 +42,7 @@ export default function Navbar() {
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-black ring-1 ring-[#FFDE02]/40">
             <Image
               src="/arman-property-advisor-logo.png"
-              alt={`${broker.name} Property Advisor`}
+              alt={`${displayedBroker.name} Property Advisor`}
               fill
               sizes="48px"
               className="object-cover"
@@ -47,7 +50,7 @@ export default function Navbar() {
           </div>
           <span className={`text-lg sm:text-2xl font-bold tracking-tight transition-colors ${useSolidNavbar ? 'text-black' : 'text-white'
             }`}>
-            {broker.name}
+            {displayedBroker.name}
           </span>
         </Link>
 

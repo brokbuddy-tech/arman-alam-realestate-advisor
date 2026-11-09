@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { MessageSquareQuote, Newspaper, ArrowUpRight, Star } from "lucide-react";
 import BlurReveal from "./ui/blur-reveal";
 
@@ -9,22 +9,22 @@ const logos = [
   "Acme Corp", "GlobalTech", "Nexus", "Quantum", "Zephyr", "Astra"
 ];
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.15 } }
 };
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 40 },
   show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
 };
 
-const slideInLeft = {
+const slideInLeft: Variants = {
   hidden: { opacity: 0, x: -60 },
   show: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut" } }
 };
 
-const slideInRight = {
+const slideInRight: Variants = {
   hidden: { opacity: 0, x: 60 },
   show: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut" } }
 };
