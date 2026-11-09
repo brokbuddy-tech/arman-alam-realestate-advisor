@@ -10,8 +10,7 @@ import { broker } from "@/data/broker";
 import { useBrokBuddyData } from "@/context/BrokBuddyContext";
 
 const navigation = [
-  { label: "Profile", href: "/" },
-  { label: "Listings", href: "/listings" },
+  { label: "All Listings", href: "/listings" },
   { label: "For Sale", href: "/sell" },
   { label: "For Rent", href: "/rent" },
   { label: "Off-Plan", href: "/off-plan" },

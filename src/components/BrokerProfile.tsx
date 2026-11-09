@@ -213,8 +213,8 @@ export default function BrokerProfile() {
       </section>
 
       <footer className="bg-[#111812] text-white py-12 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 gap-10 md:grid-cols-[1.4fr_0.8fr_1fr] md:gap-12">
-          <section aria-label="Broker contact information" className="min-w-0">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr] lg:gap-16">
+          <section aria-label="Broker information" className="min-w-0 md:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-4">
               <Image
                 src="/arman-property-advisor-logo.png"
@@ -228,50 +228,50 @@ export default function BrokerProfile() {
                 <p className="text-sm text-neutral-400 mt-1">{broker.role}</p>
               </div>
             </div>
-            {broker.bio && <p className="mt-4 max-w-sm text-sm leading-relaxed text-neutral-400">{broker.bio}</p>}
             {broker.brn && <p className="text-sm text-neutral-400 mt-3">BRN: {broker.brn}</p>}
-            {broker.website && (
-              <a href={broker.website} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm text-neutral-300 hover:text-white">
-                {broker.website}
-              </a>
-            )}
+            <Link href="/listings" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#FFDE02] px-5 py-3 text-sm font-bold text-neutral-900 hover:bg-yellow-400">
+              View all listings <ArrowUpRight className="h-4 w-4" />
+            </Link>
           </section>
+
+          {(broker.email || broker.phone || broker.whatsapp || broker.website) && (
+            <section aria-label="Broker contact information" className="min-w-0">
+              <h2 className="font-semibold text-white">Get in touch</h2>
+              <div className="mt-4 flex flex-col items-start gap-3 text-sm text-neutral-400">
+                {broker.email && <a href={`mailto:${broker.email}`} className="max-w-full break-words hover:text-white">{broker.email}</a>}
+                {broker.phone && <a href={`tel:${broker.phone}`} className="hover:text-white">{broker.phone}</a>}
+                {broker.whatsapp && <a href={`https://wa.me/${broker.whatsapp.replace(/\D/g, '')}`} className="hover:text-white">WhatsApp</a>}
+                {broker.website && (
+                  <a href={broker.website} target="_blank" rel="noreferrer" className="max-w-full break-words hover:text-white">
+                    {broker.website}
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
 
           <nav aria-label="Listing categories">
             <h2 className="font-semibold text-white">Browse listings</h2>
             <ul className="mt-4 grid grid-cols-2 gap-3 text-sm text-neutral-400">
+              <li className="col-span-2"><Link href="/listings" className="hover:text-white">All listings</Link></li>
               <li><Link href="/sell" className="hover:text-white">For sale</Link></li>
               <li><Link href="/rent" className="hover:text-white">For rent</Link></li>
               <li><Link href="/off-plan" className="hover:text-white">Off-plan</Link></li>
               <li><Link href="/commercial" className="hover:text-white">Commercial</Link></li>
-              <li className="col-span-2"><Link href="/listings" className="hover:text-white">All listings</Link></li>
             </ul>
           </nav>
-
-          <div className="flex min-w-0 flex-col items-start gap-4 md:items-end md:text-right">
-            {(broker.email || broker.phone || broker.whatsapp) && (
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-neutral-300">
-                {broker.email && <a href={`mailto:${broker.email}`} className="hover:text-white">{broker.email}</a>}
-                {broker.phone && <a href={`tel:${broker.phone}`} className="hover:text-white">{broker.phone}</a>}
-                {broker.whatsapp && <a href={`https://wa.me/${broker.whatsapp.replace(/\D/g, '')}`} className="hover:text-white">WhatsApp</a>}
-              </div>
-            )}
-            {socialLinks.length > 0 && (
-              <ul className="flex flex-wrap gap-4 text-sm">
-                {socialLinks.map((social) => (
-                  <li key={social.label}>
-                    <a href={social.href} target="_blank" rel="noreferrer" className="text-neutral-300 hover:text-white">{social.label}</a>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Link href="/#listings" className="mt-auto inline-flex items-center gap-2 rounded-full bg-[#FFDE02] px-5 py-3 text-sm font-bold text-neutral-900 hover:bg-yellow-400">
-              Browse listings <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-10 border-t border-white/10 pt-5 text-xs text-neutral-500">
-          {broker.name} · Real Estate Broker
+        <div className="max-w-7xl mx-auto mt-10 flex flex-col gap-4 border-t border-white/10 pt-5 text-xs text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>{broker.name} · {broker.role}</p>
+          {socialLinks.length > 0 && (
+            <ul aria-label="Social links" className="flex flex-wrap gap-x-5 gap-y-3 text-sm">
+              {socialLinks.map((social) => (
+                <li key={social.label}>
+                  <a href={social.href} target="_blank" rel="noreferrer" className="text-neutral-400 hover:text-white">{social.label}</a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </footer>
     </div>
