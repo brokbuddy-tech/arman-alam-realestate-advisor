@@ -138,9 +138,9 @@ in Chromium at phone, tablet, and desktop widths.
 ## Natural-language property matching
 
 The search bar on the profile and listing pages translates requests such as
-`rental villas under 20k` or `two bedroom flats in Ajman` into matching rules for
+`2BHK UNDER 25K`, `rent 2BR under 40k`, or `two bedroom flats in Ajman` into matching rules for
 transaction, property type, bedrooms, price, and location words. This is a
-rule-based natural-language matcher with an animated search interface; it does
+rule-based natural-language matcher with a compact glass search interface; it does
 not call an external AI model or require another API key.
 
 Search reads the complete broker-scoped public listing result in pages of at most
@@ -149,6 +149,10 @@ compared in AED using the existing currency conversion rates. Category, sorting,
 and page navigation retain broker scope; search pagination retains the original
 request. Errors on any upstream page fail the search instead of returning a
 partial successful feed. Searches exceeding 50 upstream pages fail explicitly.
+Bedroom and budget requirements are enforced together, regardless of input case.
+An empty result means no public listing meets those requirements; the search does
+not silently relax the budget or bedroom count. The map uses the same matching
+rules within the listings loaded for its view.
 
 Photo counts come from unique public image URLs returned for each listing. The
 photo control opens a keyboard-accessible viewer with previous/next controls.

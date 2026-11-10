@@ -1,306 +1,64 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { LayoutGrid, List, MapPin, LoaderCircle, SearchX } from 'lucide-react';
 import PropertySearch from '@/components/PropertySearch';
+import PropertyCard from '@/components/PropertyCard';
 import { listingSearchHref, type ListingSort } from '@/lib/property-search';
-import { Search, SlidersHorizontal, LayoutGrid, List, ChevronDown, Bed, Bath, Square, Star, MapPin } from 'lucide-react';
-import BlurReveal from '@/components/ui/blur-reveal';
-import { useCurrency } from '@/context/CurrencyContext';
 import type { BrokBuddyListingsPage, ListingCategory } from '@/lib/brokbuddy/website-data';
 
-const categories = ['All', 'For Buy', 'For Rent', 'Off-Plan', 'Commercial'];
-
-
+const categories: ListingCategory[] = ['All', 'For Buy', 'For Rent', 'Off-Plan', 'Commercial'];
+const categoryRoutes: Record<ListingCategory, string> = { All: '/listings', 'For Buy': '/sell', 'For Rent': '/rent', 'Off-Plan': '/off-plan', Commercial: '/commercial' };
 
 export default function ListingsView({ data, activeCategory, searchQuery = "", sort = "newest" }: { data: BrokBuddyListingsPage; activeCategory: ListingCategory; searchQuery?: string; sort?: ListingSort }) {
   const router = useRouter();
-  const { formatPrice } = useCurrency();
-  const initialProperties = data.properties;
-  const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showFilters, setShowFilters] = useState(false);
-  const visibleProperties = initialProperties;
-  const categoryRoutes: Record<string, string> = { All: '/listings', 'For Buy': '/sell', 'For Rent': '/rent', 'Off-Plan': '/off-plan', Commercial: '/commercial' };
+  const [pending, startTransition] = useTransition();
   const pageHref = (page: number, nextSort = sort) => listingSearchHref(categoryRoutes[activeCategory], page, searchQuery, nextSort);
 
   return (
-    <div className="w-full bg-[#111812] min-h-screen font-sans text-neutral-900">
-
-      {/* 1. HERO SECTION */}
-      <section className="relative pt-32 pb-14 sm:pt-40 sm:pb-20 text-center px-6 overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2000"
-            alt="Hero Background"
-            className="w-full h-full object-cover opacity-40"
-          />
-          <div className="absolute inset-0 bg-black/40 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-[#111812]/80 to-[#111812]" />
+    <main className="site-surface min-h-screen px-4 pb-12 pt-28 text-neutral-900 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{activeCategory === 'All' ? 'All listings' : activeCategory === 'For Buy' ? 'For sale' : activeCategory === 'For Rent' ? 'For rent' : activeCategory}</h1>
+          <Link href="/map" className="glass-control inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium"><MapPin className="h-4 w-4" />Map</Link>
         </div>
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: 'easeOut' }}
-          className="relative z-10 max-w-3xl mx-auto"
-        >
-          <BlurReveal as="h1" className="text-4xl sm:text-6xl font-bold text-white tracking-tight">
-            {activeCategory === 'All' ? 'All listings' : activeCategory === 'For Buy' ? 'Properties for sale' : activeCategory === 'For Rent' ? 'Properties for rent' : activeCategory + ' properties'}
-          </BlurReveal>
-          <p className="text-neutral-400 text-sm sm:text-base mt-3 max-w-lg mx-auto">
-            Browse real homes, weigh your options, and make your next move with confidence.
-          </p>
-        </motion.div>
-      </section>
-
-      {/* 2. MAIN CONTENT CONTAINER */}
-      <section className="bg-[#F6F6F4] py-8 sm:py-14 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <PropertySearch key={searchQuery} initialQuery={searchQuery} className="mb-8" />
-
-          {/* Category Switcher Tabs */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8">
-            {categories.map((cat) => (
-              <Link
-                key={cat}
-                href={categoryRoutes[cat]}
-                className={`px-4 sm:px-6 py-3 rounded-full text-sm font-semibold transition-all shadow-sm ${activeCategory === cat
-                  ? 'bg-[#111812] text-white'
-                  : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200/60'
-                  }`}
-              >
-                {cat}
-              </Link>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-            <button type="button" className="flex min-h-12 items-center justify-between rounded-2xl border border-neutral-200 bg-white px-5 text-sm font-semibold lg:hidden" aria-expanded={showFilters} aria-controls="listing-filters" onClick={() => setShowFilters(!showFilters)}>
-              Filter listings <SlidersHorizontal className="h-4 w-4" />
-            </button>
-            {/* LEFT SIDEBAR FILTER */}
-            <div id="listing-filters" className={`${showFilters ? "block" : "hidden"} lg:block lg:col-span-4 min-w-0 bg-white rounded-3xl p-6 shadow-sm border border-neutral-200/60 lg:sticky lg:top-24 space-y-6`}>
-              <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
-                <h3 className="font-bold text-base flex items-center gap-2">
-                  <SlidersHorizontal className="w-4 h-4" /> Filter Listings
-                </h3>
-                <button className="text-xs font-semibold text-neutral-500 hover:text-black">Reset all</button>
+        <PropertySearch initialQuery={searchQuery} className="mb-5" />
+        <nav aria-label="Filter by category" className="mb-5 flex flex-wrap gap-2">
+          {categories.map((category) => <Link key={category} href={listingSearchHref(categoryRoutes[category], 1, searchQuery, sort)} aria-current={activeCategory === category ? 'page' : undefined} className={`inline-flex min-h-10 items-center rounded-xl px-4 text-xs font-semibold transition-colors ${activeCategory === category ? 'glass-action' : 'glass-control'}`}>{category === 'For Buy' ? 'For sale' : category === 'All' ? 'All' : category}</Link>)}
+        </nav>
+        <section id="property-results" aria-label="Property results" aria-busy={pending} className="scroll-mt-24">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p role="status" className="flex items-center gap-2 text-sm text-neutral-600">{pending && <LoaderCircle className="h-4 w-4 animate-spin" />}<span><strong className="font-semibold text-neutral-900">{data.total}</strong> {data.total === 1 ? 'property' : 'properties'}</span></p>
+            <div className="flex max-w-full flex-wrap items-center gap-2">
+              <label className="sr-only" htmlFor="listing-sort">Sort properties</label>
+              <select id="listing-sort" value={sort} disabled={pending} onChange={(event) => startTransition(() => router.push(pageHref(1, event.target.value as ListingSort), { scroll: false }))} className="glass-control h-11 max-w-full rounded-xl px-3 text-sm">
+                {searchQuery && <option value="relevance">Best match</option>}
+                <option value="newest">Newest</option><option value="oldest">Oldest</option><option value="price-asc">Price: low to high</option><option value="price-desc">Price: high to low</option>
+              </select>
+              <div aria-label="Listing view" className="glass-control flex rounded-xl p-1">
+                <button type="button" aria-label="Grid view" aria-pressed={viewMode === 'grid'} onClick={() => setViewMode('grid')} className={`flex h-9 w-10 items-center justify-center rounded-lg ${viewMode === 'grid' ? 'bg-white/85 text-emerald-950 shadow-sm' : 'text-neutral-500'}`}><LayoutGrid className="h-4 w-4" /></button>
+                <button type="button" aria-label="List view" aria-pressed={viewMode === 'list'} onClick={() => setViewMode('list')} className={`flex h-9 w-10 items-center justify-center rounded-lg ${viewMode === 'list' ? 'bg-white/85 text-emerald-950 shadow-sm' : 'text-neutral-500'}`}><List className="h-4 w-4" /></button>
               </div>
-
-              {/* Location Input */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-neutral-600">Location</label>
-                <div className="relative bg-neutral-100 rounded-2xl px-4 py-3 flex items-center gap-3 border border-neutral-200/60">
-                  <Search className="w-4 h-4 text-neutral-400 shrink-0" />
-                  <input type="text" placeholder="Search community or city" className="w-full bg-transparent text-xs text-neutral-900 focus:outline-none" />
-                </div>
-              </div>
-
-              {/* Status Tabs */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-neutral-600">Status</label>
-                <div className="grid grid-cols-3 gap-1 bg-neutral-100 p-1 rounded-2xl border border-neutral-200/60">
-                  {['All', 'Ready', 'Off-Plan'].map((st) => (
-                    <button
-                      key={st}
-                      onClick={() => setStatusFilter(st)}
-                      className={`py-2 rounded-xl text-xs font-medium transition-all ${statusFilter === st ? 'bg-[#111812] text-white shadow-sm' : 'text-neutral-600 hover:text-neutral-900'
-                        }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Conditional Handover Date for Off-Plan */}
-              <AnimatePresence>
-                {statusFilter === 'Off-Plan' && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-2 overflow-hidden"
-                  >
-                    <label className="text-xs font-semibold text-neutral-600">Handover Date / Year</label>
-                    <select className="w-full bg-neutral-100 rounded-2xl px-4 py-3 text-xs text-neutral-700 border border-neutral-200/60 focus:outline-none">
-                      <option>Q3 2024</option>
-                      <option>Q4 2024</option>
-                      <option>Q1 2025</option>
-                      <option>Q2 2025</option>
-                      <option>Q3 2025</option>
-                      <option>Q4 2025</option>
-                      <option>Q1 2026</option>
-                      <option>Q2 2026</option>
-                      <option>Q3 2026</option>
-                      <option>Q4 2026</option>
-                      <option>2027</option>
-                      <option>2028 & Beyond</option>
-                    </select>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Bedrooms & Bathrooms */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-neutral-600">Bedrooms</label>
-                  <select className="w-full bg-neutral-100 rounded-2xl px-3 py-3 text-xs text-neutral-700 border border-neutral-200/60 focus:outline-none">
-                    <option>Any</option>
-                    <option>Studio</option>
-                    <option>1 Bed</option>
-                    <option>2 Beds</option>
-                    <option>3 Beds</option>
-                    <option>4 Beds</option>
-                    <option>5 Beds</option>
-                    <option>6+ Beds</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-neutral-600">Bathrooms</label>
-                  <select className="w-full bg-neutral-100 rounded-2xl px-3 py-3 text-xs text-neutral-700 border border-neutral-200/60 focus:outline-none">
-                    <option>Any</option>
-                    <option>1 Bath</option>
-                    <option>2 Baths</option>
-                    <option>3 Baths</option>
-                    <option>4 Baths</option>
-                    <option>5+ Baths</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Property Type */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-neutral-600">Property Type</label>
-                <select className="w-full bg-neutral-100 rounded-2xl px-4 py-3 text-xs text-neutral-700 border border-neutral-200/60 focus:outline-none">
-                  <option>All Types</option>
-                  <option>Apartment</option>
-                  <option>Villa</option>
-                  <option>Townhouse</option>
-                  <option>Penthouse</option>
-                  <option>Duplex</option>
-                  <option>Loft</option>
-                  <option>Cottage</option>
-                  <option>Commercial Space</option>
-                  <option>Plot / Land</option>
-                </select>
-              </div>
-
-              <button className="w-full bg-[#111812] text-white py-3.5 rounded-2xl text-xs font-semibold shadow-sm hover:bg-neutral-800 transition-colors">
-                Apply Filters
-              </button>
             </div>
-
-            {/* RIGHT CONTENT AREA */}
-            <div id="property-results" role="region" aria-label="Property results" className="lg:col-span-8 min-w-0 space-y-6">
-
-              {/* Top Bar (Count, Sort, Grid/List Toggles) */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-neutral-200/60 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
-                <p className="text-xs font-medium text-neutral-500">
-                  Showing <span className="font-bold text-neutral-900">{visibleProperties.length}</span> properties on this page ({data.total} total)
-                </p>
-
-                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-between">
-                  {/* Sorting Dropdown */}
-                  <select
-                    value={sort}
-                    onChange={(event) => router.push(pageHref(1, event.target.value as ListingSort), { scroll: false })}
-                    className="bg-neutral-100 text-xs font-medium text-neutral-700 px-3 py-2 rounded-xl border border-neutral-200/60 focus:outline-none"
-                  >
-                    {searchQuery && <option value="relevance">Sort by: Best match</option>}
-                    <option value="newest">Sort by: Newest</option>
-                    <option value="oldest">Sort by: Oldest</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
-                  </select>
-
-                  {/* Grid / List / Map View Toggle */}
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href="/map"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#FFDE02] text-black hover:bg-yellow-400 transition-all shadow-sm"
-                    >
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>Map View</span>
-                    </Link>
-
-                    <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-200/60">
-                      <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-black' : 'text-neutral-400'}`}
-                      >
-                        <LayoutGrid className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('list')}
-                        className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-black' : 'text-neutral-400'}`}
-                      >
-                        <List className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Property Cards Grid/List */}
-              <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "space-y-6"}>
-                {visibleProperties.map((property) => (
-                  <Link href={`/listings/${property.id}`} key={property.id} className="block min-w-0">
-                    <motion.div
-                      layout
-                      className={`bg-white rounded-3xl overflow-hidden shadow-sm border border-neutral-200/60 group flex ${viewMode === 'list' ? 'flex-col md:flex-row' : 'flex-col'}`}
-                    >
-                      {/* Image Wrapper */}
-                      <div className={`relative ${viewMode === 'list' ? 'md:w-56 h-56 md:h-auto' : 'h-64 w-full'} overflow-hidden bg-neutral-100 shrink-0`}>
-                        <Image alt={property.title} className="object-cover group-hover:scale-105 transition-transform duration-500" fill src={property.image} unoptimized />
-                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-neutral-800 shadow-sm">
-                          {property.type}
-                        </div>
-
-                      </div>
-
-                      {/* Details */}
-                      <div className="p-5 min-w-0 flex flex-col justify-between flex-1">
-                        <div>
-                          <div className="text-2xl font-black text-[#111812] mb-1">{formatPrice(property.price, property.currency)}</div>
-                          <h4 className="font-bold text-lg text-neutral-900 transition-colors">{property.title}</h4>
-                          <p className="text-xs text-neutral-500 mt-1">{property.address}</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-4 mt-4 border-t border-neutral-100 text-[11px] font-medium text-neutral-600">
-                          <div className="flex items-center gap-1"><Bed className="w-3.5 h-3.5 text-neutral-400" /> {property.beds}</div>
-                          <div className="flex items-center gap-1"><Square className="w-3.5 h-3.5 text-neutral-400" /> {property.sqft}</div>
-                          <div className="flex items-center gap-1"><Bath className="w-3.5 h-3.5 text-neutral-400" /> {property.baths}</div>
-                          {property.rating !== null && <div className="flex items-center gap-1"><Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> {property.rating}</div>}
-                        </div>
-                      </div>
-                    </motion.div>
-                  </Link>
-                ))}
-              </div>
-              {visibleProperties.length === 0 && (
-                <p role="status" className="rounded-3xl border border-neutral-200 bg-white p-8 text-center text-neutral-600">
-                  {searchQuery ? 'No properties match this request. Try a wider budget, a different location, or fewer requirements.' : 'There are no listings on this page. Please check back soon.'}
-                  {searchQuery && <Link href="/listings" className="mt-4 block font-semibold text-neutral-900 underline underline-offset-4">Clear search and view all listings</Link>}
-                </p>
-              )}
-              <nav aria-label="Listing pagination" className="flex items-center justify-center gap-6 text-sm font-semibold">
-                {data.page > 1 && <Link href={pageHref(data.page - 1)} rel="prev">Previous</Link>}
-                <span aria-current="page">Page {data.page} of {data.totalPages}</span>
-                {data.page < data.totalPages && <Link href={pageHref(data.page + 1)} rel="next">Next</Link>}
-              </nav>
-
-            </div>
-
           </div>
-        </div>
-      </section>
-
-
-    </div>
+          <div className={`${pending ? 'opacity-60' : ''} ${viewMode === 'grid' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-4'}`}>
+            {data.properties.map((property) => <PropertyCard key={property.id} property={property} list={viewMode === 'list'} />)}
+          </div>
+          {data.properties.length === 0 && <div role="status" className="glass-panel flex flex-col items-center px-5 py-12 text-center">
+            <SearchX className="mb-4 h-7 w-7 text-emerald-900/50" /><h2 className="text-lg font-semibold">{searchQuery ? 'No matches' : 'No listings available'}</h2>
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-neutral-600">{searchQuery ? 'Try a higher budget or fewer requirements. Search budgets are in AED.' : 'Check back for new properties.'}</p>
+            {searchQuery && <Link href="/listings" className="glass-action mt-5 rounded-xl px-5 py-3 text-sm font-semibold">View all listings</Link>}
+          </div>}
+          {data.totalPages > 1 && <nav aria-label="Listing pagination" className="mt-6 flex items-center justify-center gap-4 text-sm">
+            {data.page > 1 && <Link href={pageHref(data.page - 1)} rel="prev" className="glass-control rounded-xl px-4 py-3">Previous</Link>}
+            <span aria-current="page" className="text-neutral-600">{data.page} / {data.totalPages}</span>
+            {data.page < data.totalPages && <Link href={pageHref(data.page + 1)} rel="next" className="glass-control rounded-xl px-4 py-3">Next</Link>}
+          </nav>}
+        </section>
+      </div>
+    </main>
   );
 }

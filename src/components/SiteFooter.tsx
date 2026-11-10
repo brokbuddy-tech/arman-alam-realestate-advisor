@@ -13,16 +13,16 @@ export default function SiteFooter() {
     .filter((entry): entry is [string, string] => Boolean(entry[1]))
     .map(([label, href]) => ({ label: label[0].toUpperCase() + label.slice(1), href }));
   return (
-      <footer className="bg-[#111812] text-white py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr] lg:gap-16">
+      <footer className="glass-dark rounded-t-3xl text-white py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr] lg:gap-10">
           <section aria-label="Broker information" className="min-w-0 md:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-4">
               <Image
                 src="/arman-property-advisor-logo.png"
                 alt={`${broker.name} Property Advisor`}
-                width={64}
-                height={64}
-                className="h-16 w-16 shrink-0 rounded-full object-cover"
+                width={48}
+                height={48}
+                className="h-12 w-12 shrink-0 rounded-full object-cover"
               />
               <div className="min-w-0">
                 <p className="font-bold [overflow-wrap:anywhere]">{broker.name}</p>
@@ -30,7 +30,7 @@ export default function SiteFooter() {
               </div>
             </div>
             {broker.brn && <p className="text-sm text-neutral-400 mt-3">BRN: {broker.brn}</p>}
-            <Link href="/listings" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#FFDE02] px-5 py-3 text-sm font-bold text-neutral-900 hover:bg-yellow-400">
+            <Link href="/listings" className="glass-action mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold">
               View all listings <ArrowUpRight className="h-4 w-4" />
             </Link>
           </section>
@@ -38,7 +38,7 @@ export default function SiteFooter() {
           {(broker.email || broker.phone || broker.whatsapp || broker.website) && (
             <section aria-label="Broker contact information" className="min-w-0">
               <h2 className="font-semibold text-white">Get in touch</h2>
-              <div className="mt-4 flex flex-col items-start gap-3 text-sm text-neutral-400">
+              <div className="mt-3 flex flex-col items-start gap-3 text-sm text-neutral-400">
                 {broker.email && <a href={`mailto:${broker.email}`} className="max-w-full break-words hover:text-white">{broker.email}</a>}
                 {broker.phone && <a href={`tel:${broker.phone}`} className="hover:text-white">{broker.phone}</a>}
                 {broker.whatsapp && <a href={`https://wa.me/${broker.whatsapp.replace(/\D/g, '')}`} className="hover:text-white">WhatsApp</a>}
@@ -53,7 +53,7 @@ export default function SiteFooter() {
 
           <nav aria-label="Listing categories">
             <h2 className="font-semibold text-white">Browse listings</h2>
-            <ul className="mt-4 grid grid-cols-2 gap-3 text-sm text-neutral-400">
+            <ul className="mt-3 grid grid-cols-2 gap-3 text-sm text-neutral-400">
               <li className="col-span-2"><Link href="/listings" className="hover:text-white">All listings</Link></li>
               <li><Link href="/sell" className="hover:text-white">For sale</Link></li>
               <li><Link href="/rent" className="hover:text-white">For rent</Link></li>
@@ -63,7 +63,7 @@ export default function SiteFooter() {
             </ul>
           </nav>
         </div>
-        <div className="max-w-7xl mx-auto mt-10 flex flex-col gap-4 border-t border-white/10 pt-5 text-xs text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="max-w-7xl mx-auto mt-6 flex flex-col gap-4 border-t border-white/10 pt-5 text-xs text-neutral-400 sm:flex-row sm:items-center sm:justify-between">
           <p>{broker.name} · Real Estate Advisor</p>
           {socialLinks.length > 0 && (
             <ul aria-label="Social links" className="flex flex-wrap gap-x-5 gap-y-3 text-sm">

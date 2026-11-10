@@ -30,15 +30,15 @@ export default function PropertyGallery({ title, images, fallback }: { title: st
 
   return (
     <>
-      <div aria-label="Property photos" className={`grid min-w-0 grid-cols-1 gap-3 ${count > 1 ? "lg:grid-cols-[2fr_1fr]" : ""} lg:h-[480px]`}>
-        <div className="relative h-[250px] min-w-0 overflow-hidden rounded-3xl bg-neutral-200 sm:h-[400px] lg:h-full">
+      <div aria-label="Property photos" className={`grid min-w-0 grid-cols-1 gap-3 ${count > 1 ? "lg:grid-cols-[2fr_1fr]" : ""} lg:h-[400px]`}>
+        <div className="relative h-[230px] min-w-0 overflow-hidden rounded-2xl border border-white/70 bg-neutral-200 sm:h-[320px] lg:h-full">
           <Image src={photos[0] ?? fallback} alt={count ? `${title} — photo 1` : `Photo unavailable for ${title}`} fill unoptimized priority sizes="(max-width: 1023px) 100vw, 66vw" className="object-cover" />
           {count ? (
             <>
               <button type="button" aria-label="Open property photo gallery" onClick={() => view(0)} className="absolute inset-0 focus-visible:outline-offset-[-4px]" />
-              <button type="button" onClick={() => view(0)} className="absolute right-3 bottom-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/30 bg-[#111812]/90 px-4 py-2 text-xs font-semibold text-white backdrop-blur-md hover:bg-[#111812] sm:right-5 sm:bottom-5 sm:text-sm"><Images className="h-4 w-4" />View {label}</button>
+              <button type="button" onClick={() => view(0)} className="absolute right-3 bottom-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/30 bg-[#173325]/70 px-4 py-2 text-xs font-semibold text-white backdrop-blur-md hover:bg-[#111812] sm:right-5 sm:bottom-5 sm:text-sm"><Images className="h-4 w-4" />View {label}</button>
             </>
-          ) : <span className="absolute right-4 bottom-4 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-neutral-700">Photos coming soon</span>}
+          ) : <span className="absolute right-4 bottom-4 rounded-full glass-badge px-4 py-2 text-sm font-medium text-neutral-700">Photos coming soon</span>}
         </div>
         {thumbnails.length > 0 && (
           <div className={`grid min-w-0 gap-3 ${thumbnails.length > 2 ? "grid-cols-3 lg:grid-cols-2 lg:grid-rows-2" : thumbnails.length === 2 ? "grid-cols-2 lg:grid-cols-1 lg:grid-rows-2" : "grid-cols-1"}`}>
@@ -54,11 +54,11 @@ export default function PropertyGallery({ title, images, fallback }: { title: st
       <dialog ref={dialog} aria-labelledby="gallery-title" onClose={() => setOpen(false)} onKeyDown={(event) => {
         if (event.key === "ArrowLeft" && count > 1) { event.preventDefault(); next(-1); }
         if (event.key === "ArrowRight" && count > 1) { event.preventDefault(); next(1); }
-      }} className="fixed inset-0 m-0 h-[100dvh] max-h-none w-screen max-w-none border-0 bg-[#0c130e] p-4 text-white backdrop:bg-black sm:p-6">
+      }} className="fixed inset-0 m-0 h-[100dvh] max-h-none w-screen max-w-none border-0 bg-[#0c130e]/95 backdrop-blur-xl p-4 text-white backdrop:bg-black sm:p-6">
         <div className="mx-auto flex h-full max-w-[1600px] flex-col gap-4">
           <div className="flex min-w-0 shrink-0 items-center justify-between gap-4">
             <div className="min-w-0"><h2 id="gallery-title" className="truncate text-sm font-semibold sm:text-lg">{title}</h2><p aria-live="polite" className="mt-1 text-xs text-neutral-400">Photo {activeIndex + 1} of {count}</p></div>
-            <button type="button" autoFocus onClick={() => dialog.current?.close()} aria-label="Close photo gallery" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/5 hover:bg-white/15"><X className="h-5 w-5" /></button>
+            <button type="button" autoFocus onClick={() => dialog.current?.close()} aria-label="Close photo gallery" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 backdrop-blur-md hover:bg-white/15"><X className="h-5 w-5" /></button>
           </div>
           <div className="relative min-h-0 flex-1">
             {open && count > 0 && <Image src={photos[activeIndex] ?? photos[0]} alt={`${title} — photo ${activeIndex + 1} of ${count}`} fill unoptimized sizes="100vw" className="object-contain" />}

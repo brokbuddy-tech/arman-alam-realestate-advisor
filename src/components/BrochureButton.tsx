@@ -59,7 +59,7 @@ export function BrochureButton({ property }: { property: Property }) {
       <button 
         onClick={handleDownload}
         disabled={isGenerating}
-        className="w-full bg-[#111812] hover:bg-neutral-800 text-[#FFDE02] px-6 py-4 rounded-2xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2"
+        className="glass-dark w-full hover:bg-neutral-800 text-[#FFDE02] px-5 py-3 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
       >
         <Download className={`w-5 h-5 ${isGenerating ? 'animate-bounce' : ''}`} />
         {isGenerating ? 'Generating Brochure...' : 'Download Brochure'}

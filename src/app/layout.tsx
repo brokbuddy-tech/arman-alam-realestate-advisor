@@ -55,7 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <BrokBuddyProvider data={brokBuddyData}>
             {brokBuddyData !== null && <Navbar />}
             {brokBuddyData === null && (
-              <p role="status" className="min-h-screen bg-[#F6F6F4] px-6 pt-36 text-center text-neutral-600">
+              <p role="status" className="site-surface min-h-screen px-6 pt-32 text-center text-neutral-600">
                 This broker’s public profile and listings are currently unavailable. Please check back later.
               </p>
             )}

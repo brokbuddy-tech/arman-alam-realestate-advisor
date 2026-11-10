@@ -2,8 +2,8 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #edf1eb;
+  --foreground: #18271f;
 }
 
 @theme inline {
@@ -13,17 +13,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
+  background-image: radial-gradient(at 0% 10%, #dce9dd 0, transparent 50%), radial-gradient(at 100% 40%, #f2ecd1 0, transparent 45%), radial-gradient(at 30% 100%, #dce9e6 0, transparent 45%);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 /* Custom Leaflet Styling */
@@ -70,7 +65,7 @@ body {
 .rich-text {
   color: #525252;
   font-size: 0.9375rem;
-  line-height: 1.85;
+  line-height: 1.75;
   overflow-wrap: anywhere;
 }
 .rich-text > :first-child { margin-top: 0; }
@@ -90,7 +85,7 @@ body {
 .rich-text table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
 .rich-text :is(th, td) { border: 1px solid #d4d4d4; padding: 0.5rem 0.75rem; text-align: left; }
 .rich-text hr { margin: 1.5rem 0; border-color: #d4d4d4; }
-.rich-text-dark { color: #b3b8b1; }
+.rich-text-dark { color: #d5ded5; }
 .rich-text-dark :is(h3, h4, h5, h6, strong) { color: #fff; }
 .rich-text-dark pre { background: #243025; }
 
@@ -103,20 +98,69 @@ body {
 
 @media (max-width: 639px) {
   input:not([type="radio"]):not([type="range"]):not([type="checkbox"]), select, textarea { font-size: 16px; }
+  .profile-bio p { text-align: left; hyphens: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
-.property-search-pending .search-glow {
-  animation: search-glow 2s ease-in-out infinite alternate;
+/* Shared frosted surfaces keep the same material across pages and controls. */
+.site-surface { background: transparent; }
+.glass-panel {
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 28px -18px rgba(25, 56, 39, 0.25), inset 0 1px 0 rgba(255,255,255,0.8);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
-.search-scan { animation: search-scan 1.8s ease-in-out infinite; }
-@keyframes search-scan {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(400%); }
+.glass-control, .glass-badge {
+  background: rgba(255,255,255,0.62);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
-@keyframes search-glow {
-  from { opacity: 0.5; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1.15); }
+.glass-control { transition: background-color 160ms, border-color 160ms; }
+.glass-control:hover { background: rgba(255,255,255,0.88); border-color: rgba(57,100,72,0.22); }
+.glass-action {
+  color: #17281b;
+  background: linear-gradient(135deg, rgba(255,231,76,0.97), rgba(255,222,2,0.86));
+  border: 1px solid rgba(255,239,153,0.8);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 12px -8px #796900;
+}
+.glass-action:hover { background: #ffe631; }
+.glass-dark {
+  background: linear-gradient(125deg, rgba(19,44,32,0.94), rgba(24,46,34,0.86));
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 20px 45px -35px #173e27;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+.glass-nav {
+  background: rgba(18,39,29,0.87);
+  border-bottom: 1px solid rgba(255,255,255,0.18);
+  box-shadow: 0 4px 24px -16px #0e2717;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+.glass-dialog {
+  background: rgba(242,247,240,0.94);
+  border: 1px solid rgba(255,255,255,0.95);
+  box-shadow: 0 25px 80px -25px rgba(7,30,17,0.4), inset 0 1px 0 #fff;
+  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
+}
+.glass-input {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(56,89,65,0.16);
+  box-shadow: inset 0 1px 2px rgba(29,58,37,0.03);
+}
+.property-search:focus-within { border-color: rgba(65,112,77,0.45); box-shadow: 0 0 0 3px rgba(89,132,94,0.08); }
+.profile-hero { background-image: radial-gradient(ellipse at top right, rgba(214,196,81,0.10), transparent 65%), linear-gradient(125deg, rgba(19,44,32,0.94), rgba(24,46,34,0.86)); }
+select option { background: #f4f7f2; color: #18271f; }
+dialog::backdrop { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-panel, .glass-control, .glass-dialog { background-color: #f4f7f2; }
+  .glass-dark, .glass-nav { background-color: #183023; }
 }

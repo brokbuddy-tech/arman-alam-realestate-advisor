@@ -207,7 +207,7 @@ test("server modules are guarded and route entry points keep feed calls on the s
   assert.doesNotMatch(detailRoute, /use client/);
   assert.match(detailRoute, /getBrokBuddyListing\(id\)/);
   const view = read("../../app/listings/listings-view.tsx");
-  assert.match(view, /href=\{`\/listings\/\$\{property.id\}`\}/);
+  assert.match(read("../../components/PropertyCard.tsx"), /href=\{`\/listings\/\$\{property.id\}`\}/);
   assert.match(view, /pageHref\(data.page \+ 1\)/);
   assert.match(view, /categoryRoutes\[activeCategory\]/);
   for (const route of ["listings", "sell", "rent", "off-plan", "commercial"]) {
@@ -279,4 +279,24 @@ test("search rejects cross-broker results and deduplicates gallery URLs", async 
  await assert.rejects(searchBrokBuddyListings("apartment"),/outside the configured broker scope/);
  respond(listing({images:[{url:asset},{url:asset},{url:"gs://internal/path"}]}));
  const detail=await getBrokBuddyListing("listing-1");assert.equal(detail.gallery.length,1);
+});
+
+test("2BHK UNDER 25K is matched against real bedroom counts and AED amounts", async () => {
+ const listings = [
+  listing({id:"two-at-budget",bedrooms:2,price:25000}),
+  listing({id:"two-above-budget",bedrooms:2,price:26000}),
+  listing({id:"one-under-budget",bedrooms:1,price:24000}),
+ ];
+ globalThis.fetch = async (input) => {
+  const url = new URL(input);
+  assert.equal(url.pathname, `/api/public/broker-template/${slug}/listings`);
+  assert.equal(url.searchParams.get("bedrooms"), "2");
+  return Response.json({listings,total:3,page:1,totalPages:1});
+ };
+ const result = await searchBrokBuddyListings("2BHK UNDER 25K");
+ assert.deepEqual(result.properties.map(item => item.id), ["two-at-budget"]);
+ assert.equal(result.total, 1);
+ respond({listings: listings.slice(1),total:2,page:1,totalPages:1});
+ const empty = await searchBrokBuddyListings("2BHK UNDER 25K");
+ assert.equal(empty.total, 0); assert.deepEqual(empty.properties, []);
 });

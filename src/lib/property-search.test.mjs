@@ -57,3 +57,22 @@ test("search URLs preserve the sentence, pagination and sorting without acceptin
  assert.equal(parsePropertySearch("x".repeat(400)).query.length,240);
  assert.deepEqual(parsePropertySearch("  ").terms,[]);
 });
+
+test("2BHK UNDER 25K enforces both bedrooms and an AED budget, including an honest zero-match result", () => {
+ const intent = parsePropertySearch("2BHK UNDER 25K");
+ assert.equal(intent.bedrooms, 2); assert.equal(intent.maxPrice, 25000); assert.deepEqual(intent.terms, []);
+ const inventory = [property({beds:2, price:26000}), property({beds:1, price:24000})];
+ assert.deepEqual(inventory.filter(item => matchesPropertySearch(item, intent)), []);
+ assert.equal(matchesPropertySearch(property({beds:2, price:25000}), intent), true);
+ assert.equal(matchesPropertySearch(property({beds:2, price:24000}), intent), true);
+ assert.equal(matchesPropertySearch(property({beds:2, price:25001}), intent), false);
+ assert.equal(matchesPropertySearch(property({beds:null, price:24000}), intent), false);
+});
+
+test("bare rent, BR abbreviations, and joined location numbers remain searchable", () => {
+ const intent = parsePropertySearch("rent 2BR under AED 40,000 per year in Al Jurf 3");
+ assert.equal(intent.transactionType, "RENT"); assert.equal(intent.bedrooms, 2); assert.equal(intent.maxPrice, 40000);
+ assert.equal(matchesPropertySearch(property({title:"Spacious2BR flat in AlJurf3",beds:2,price:33000}), intent), true);
+ assert.equal(matchesPropertySearch(property({title:"Spacious2BR flat in AlJurf3",beds:2,price:33000,transactionType:"SALE"}), intent), false);
+ assert.equal(matchesPropertySearch(property({title:"Spacious2BR flat in AlJurf2",beds:2,price:33000}), intent), false);
+});

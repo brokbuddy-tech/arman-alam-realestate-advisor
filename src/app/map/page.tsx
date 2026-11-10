@@ -3,54 +3,38 @@
 import React, { useState, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
-  SlidersHorizontal,
   MapPin,
   Bed,
   Bath,
   Square,
-  Star,
-  ExternalLink,
   ChevronRight,
   RotateCcw,
-  Layers,
   Map as MapIcon,
   List as ListIcon,
   Columns
 } from 'lucide-react';
-import BlurReveal from '@/components/ui/blur-reveal';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useBrokBuddyData } from '@/context/BrokBuddyContext';
 import type { Property } from '@/data/properties';
+import { matchesPropertySearch, parsePropertySearch } from '@/lib/property-search';
 
 // Dynamically import PropertyMap with SSR disabled to avoid leaflet window errors
 const PropertyMap = dynamic(() => import('@/components/PropertyMap'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-[450px] bg-neutral-100 rounded-3xl flex items-center justify-center animate-pulse border border-neutral-200">
+    <div className="w-full h-full min-h-[450px] glass-panel flex items-center justify-center animate-pulse border border-neutral-200">
       <div className="flex flex-col items-center gap-3 text-neutral-400">
         <MapPin className="w-8 h-8 animate-bounce text-[#FFDE02]" />
-        <span className="text-sm font-semibold text-neutral-600">Loading Dubai Property Map...</span>
+        <span className="text-sm font-semibold text-neutral-600">Loading property map…</span>
       </div>
     </div>
   ),
 });
 
-const neighborhoods = [
-  { name: 'All UAE', center: null },
-  { name: 'Downtown Dubai', center: { lat: 25.1972, lng: 55.2744 } },
-  { name: 'Palm Jumeirah', center: { lat: 25.1124, lng: 55.1390 } },
-  { name: 'Dubai Marina', center: { lat: 25.0805, lng: 55.1403 } },
-  { name: 'Business Bay', center: { lat: 25.1837, lng: 55.2666 } },
-  { name: 'Dubai Hills Estate', center: { lat: 25.1112, lng: 55.2471 } },
-  { name: 'Dubai Creek Harbour', center: { lat: 25.2014, lng: 55.3512 } },
-  { name: 'DIFC', center: { lat: 25.2104, lng: 55.2818 } },
-];
-
 const categories = ['All', 'For Buy', 'For Rent', 'Off-Plan', 'Commercial'];
-const propertyTypes = ['All', 'Villa', 'Apartment', 'Cottage', 'Office'];
+const propertyTypes = ['All', 'Villa', 'Apartment', 'Townhouse', 'Office', 'Shop', 'Warehouse'];
 
 export default function MapPage() {
   const { formatPrice } = useCurrency();
@@ -66,35 +50,22 @@ export default function MapPage() {
   const [listColumns, setListColumns] = useState<1 | 2>(2);
 
   const cardListRef = useRef<HTMLDivElement>(null);
+  const neighborhoods = useMemo(() => [
+    { name: 'All UAE', center: null as {lat:number;lng:number} | null },
+    ...[...new Set(allProperties.map(property => property.location).filter(Boolean))].map(name => {
+      const property = allProperties.find(property => property.location === name && property.coordinates.lat !== null && property.coordinates.lng !== null);
+      return {name, center: property ? {lat: property.coordinates.lat!, lng: property.coordinates.lng!} : null};
+    }),
+  ], [allProperties]);
 
-  // Filter properties
   const filteredProperties = useMemo(() => {
-    return allProperties.filter((property) => {
-      // Neighborhood filter
-      if (selectedNeighborhood !== 'All UAE' && property.location !== selectedNeighborhood) {
-        return false;
-      }
-      // Category filter
-      if (activeCategory !== 'All' && property.category !== activeCategory) {
-        return false;
-      }
-      // Type filter
-      if (activeType !== 'All' && property.type.toLowerCase() !== activeType.toLowerCase()) {
-        return false;
-      }
-      // Search query
-      if (searchQuery.trim() !== '') {
-        const query = searchQuery.toLowerCase();
-        const matchesTitle = property.title.toLowerCase().includes(query);
-        const matchesAddress = property.address.toLowerCase().includes(query);
-        const matchesLocation = property.location?.toLowerCase().includes(query);
-        const matchesType = property.type.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesAddress && !matchesLocation && !matchesType) {
-          return false;
-        }
-      }
-      return true;
-    });
+    const intent = parsePropertySearch(searchQuery);
+    const typeIntent = parsePropertySearch(activeType === 'All' ? '' : activeType);
+    return allProperties.filter(property =>
+      (selectedNeighborhood === 'All UAE' || property.location === selectedNeighborhood) &&
+      (activeCategory === 'All' || property.category === activeCategory) &&
+      matchesPropertySearch(property, typeIntent) && matchesPropertySearch(property, intent)
+    );
   }, [allProperties, searchQuery, selectedNeighborhood, activeCategory, activeType]);
 
   const handleSelectPropertyFromMap = (property: Property) => {
@@ -129,26 +100,16 @@ export default function MapPage() {
   };
 
   return (
-    <div className="w-full bg-[#F6F6F4] min-h-screen font-sans text-neutral-900 pt-24 pb-12 flex flex-col">
+    <div className="w-full site-surface min-h-screen font-sans text-neutral-900 pt-24 pb-12 flex flex-col">
       {/* 1. TOP HEADER & SEARCH BAR */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full mb-6">
         {/* Title & Stats */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">
-              <span className="w-2 h-2 rounded-full bg-[#FFDE02]"></span>
-              Interactive Property Finder
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111812] tracking-tight">
-              Explore UAE on Map
-            </h1>
-            <p className="text-neutral-500 text-sm mt-1">
-              Find villas, penthouses, and luxury apartments located across Dubai’s most prestigious communities.
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-[#163a2c]">Property map</h1>
           </div>
-
           {/* View Mode Switcher */}
-          <div className="flex items-center bg-white rounded-2xl p-1.5 shadow-sm border border-neutral-200/80 self-start md:self-auto">
+          <div className="flex items-center glass-control rounded-xl p-1.5 self-start md:self-auto">
             <button
               onClick={() => setViewMode('split')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -156,7 +117,7 @@ export default function MapPage() {
               }`}
             >
               <Columns className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Split View</span>
+              <span>Split</span>
             </button>
             <button
               onClick={() => setViewMode('map')}
@@ -180,7 +141,7 @@ export default function MapPage() {
         </div>
 
         {/* Search & Filter Controls Card */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-neutral-200/80 space-y-4">
+        <div className="glass-panel p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
             {/* Search Input */}
             <div className="md:col-span-5 relative">
@@ -190,7 +151,7 @@ export default function MapPage() {
                 placeholder="Search by community, tower, or keywords..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-neutral-100 rounded-2xl pl-11 pr-4 py-3 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 border border-neutral-200/60 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-black transition-all"
+                aria-label="Search mapped properties" className="w-full glass-input rounded-xl pl-11 pr-12 py-3 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 border border-neutral-200/60 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-black transition-all"
               />
               {searchQuery && (
                 <button
@@ -203,7 +164,7 @@ export default function MapPage() {
             </div>
 
             {/* Category Selector */}
-            <div className="md:col-span-4 min-w-0 flex items-center bg-neutral-100 p-1 rounded-2xl border border-neutral-200/60 overflow-x-auto">
+            <div className="md:col-span-4 min-w-0 flex items-center glass-input p-1 rounded-xl overflow-x-auto">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -221,14 +182,11 @@ export default function MapPage() {
             <div className="md:col-span-2">
               <select
                 value={activeType}
-                onChange={(e) => setActiveType(e.target.value)}
-                className="w-full bg-neutral-100 border border-neutral-200/60 rounded-2xl px-3.5 py-3 text-xs sm:text-sm font-semibold text-neutral-800 focus:outline-none focus:border-black cursor-pointer"
+                aria-label="Property type" onChange={(e) => setActiveType(e.target.value)}
+                className="w-full glass-input rounded-xl px-3.5 py-3 text-xs sm:text-sm font-semibold text-neutral-800 focus:outline-none focus:border-black cursor-pointer"
               >
                 <option value="All">All Types</option>
-                <option value="Villa">Villa</option>
-                <option value="Apartment">Apartment</option>
-                <option value="Cottage">Cottage</option>
-                <option value="Office">Commercial Office</option>
+                {propertyTypes.filter(type => type !== 'All').map(type => <option key={type} value={type}>{type}</option>)}
               </select>
             </div>
 
@@ -236,7 +194,7 @@ export default function MapPage() {
             <div className="md:col-span-1 flex justify-end">
               <button
                 onClick={handleResetFilters}
-                title="Reset all filters"
+                aria-label="Reset all filters" title="Reset all filters"
                 className="w-full md:w-auto p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-colors flex items-center justify-center border border-neutral-200/60"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -256,7 +214,7 @@ export default function MapPage() {
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                   selectedNeighborhood === n.name
                     ? 'bg-[#FFDE02] text-black border-yellow-400 shadow-sm scale-105'
-                    : 'bg-white text-neutral-600 border-neutral-200/80 hover:border-black hover:text-black'
+                    : 'bg-white/50 text-neutral-600 border-white/80 hover:border-black hover:text-black'
                 }`}
               >
                 {n.name}
@@ -286,7 +244,7 @@ export default function MapPage() {
                 
                 <div className="flex items-center gap-2">
                   {viewMode === 'split' && (
-                    <div className="flex items-center bg-white rounded-xl p-0.5 border border-neutral-200/80 shadow-xs text-xs font-bold">
+                    <div className="flex items-center glass-control rounded-xl p-0.5 text-xs font-bold">
                       <button
                         onClick={() => setListColumns(1)}
                         className={`px-2.5 py-1 rounded-lg transition-all ${
@@ -313,7 +271,7 @@ export default function MapPage() {
                   )}
                   {filteredProperties.length > 0 && (
                     <span className="text-[11px] font-medium text-neutral-400 hidden xl:inline">
-                      Click pin or card to locate
+                      Select a pin to locate
                     </span>
                   )}
                 </div>
@@ -321,9 +279,9 @@ export default function MapPage() {
 
               {/* Empty state */}
               {filteredProperties.length === 0 && (
-                <div className="bg-white rounded-3xl p-8 text-center border border-neutral-200/80 my-8">
+                <div className="glass-panel p-6 text-center my-8">
                   <MapPin className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
-                  <h3 className="font-extrabold text-base text-neutral-800">No properties found</h3>
+                  <h3 className="font-semibold text-base text-neutral-800">No properties found</h3>
                   <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
                     Try adjusting your search criteria or switch to &quot;All UAE&quot; communities.
                   </p>
@@ -356,7 +314,7 @@ export default function MapPage() {
                       id={`property-card-${property.id}`}
                       onMouseEnter={() => setHoveredPropertyId(property.id)}
                       onMouseLeave={() => setHoveredPropertyId(null)}
-                      className={`bg-white rounded-3xl overflow-hidden border transition-all duration-200 ${
+                      className={`glass-panel overflow-hidden border transition-all duration-200 ${
                         isSelected
                           ? 'border-black ring-2 ring-black/10 shadow-lg scale-[1.01]'
                           : isHovered
@@ -379,26 +337,21 @@ export default function MapPage() {
                             {property.type}
                           </span>
                         </div>
-                        <div className="absolute top-3 right-3 bg-[#FFDE02] text-black px-2.5 py-0.5 rounded-full text-[11px] font-black shadow-sm">
+                        <div className="absolute top-3 right-3 bg-[#FFDE02] text-black px-2.5 py-0.5 rounded-full text-[11px] font-semibold shadow-sm">
                           {property.category}
                         </div>
                       </div>
 
                       <div className="p-4">
                         <div className="flex items-baseline justify-between mb-1">
-                          <div className="text-lg font-black text-[#111812]">
+                          <div className="text-lg font-semibold text-[#111812]">
                             {formatPrice(property.price, property.currency)}
-                            {property.category === 'For Rent' && (
-                              <span className="text-[11px] font-medium text-neutral-500"> / mo</span>
-                            )}
+
                           </div>
-                          <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
-                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            <span>{property.rating ?? '—'}</span>
-                          </div>
+
                         </div>
 
-                        <h3 className="font-extrabold text-sm text-neutral-900 line-clamp-1 mb-0.5">
+                        <h3 className="font-semibold text-sm text-neutral-900 line-clamp-1 mb-0.5">
                           {property.title}
                         </h3>
 
@@ -427,7 +380,7 @@ export default function MapPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleLocateProperty(property)}
-                            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2.5 rounded-xl text-[11px] font-bold transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-1 min-h-11 py-2 px-2.5 rounded-xl text-[11px] font-semibold transition-all ${
                               isSelected
                                 ? 'bg-[#FFDE02] text-black shadow-sm'
                                 : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800'
@@ -439,7 +392,7 @@ export default function MapPage() {
 
                           <Link
                             href={`/listings/${property.id}`}
-                            className="flex items-center justify-center gap-1 py-2 px-3 rounded-xl text-[11px] font-bold bg-[#111812] text-white hover:bg-neutral-800 transition-colors"
+                            className="flex items-center justify-center gap-1 min-h-11 py-2 px-3 rounded-xl text-[11px] font-semibold glass-dark text-white hover:bg-neutral-800 transition-colors"
                           >
                             <span>Details</span>
                             <ChevronRight className="w-3 h-3" />

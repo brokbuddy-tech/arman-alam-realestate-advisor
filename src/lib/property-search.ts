@@ -28,7 +28,11 @@ const kinds = [
 const amountPattern = "(?:aed\\s*)?([0-9]+(?:[,.][0-9]+)*)(?:\\s*(thousand|million|k|m))?(?:\\s*aed)?";
 const numberWords: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
 const amount = (number: string, suffix?: string) => Number(number.replace(/,/g, "")) * (/^(m|million)$/i.test(suffix ?? "") ? 1_000_000 : /^(k|thousand)$/i.test(suffix ?? "") ? 1_000 : 1);
-const tokens = (value: string) => value.toLowerCase().normalize("NFKD").replace(/\p{Diacritic}/gu, "").match(/[\p{L}\p{N}]+/gu) ?? [];
+const tokens = (value: string) => value
+  .replace(/([a-z])([A-Z])/g, "$1 $2")
+  .replace(/(\p{L})(\p{N})|(\p{N})(\p{L})/gu, "$1$3 $2$4")
+  .toLowerCase().normalize("NFKD").replace(/\p{Diacritic}/gu, "")
+  .match(/[\p{L}\p{N}]+/gu) ?? [];
 const moneyLabel = (value: number) => `AED ${value.toLocaleString("en-US")}`;
 
 export function parsePropertySearch(query: string): SearchIntent {
@@ -37,7 +41,7 @@ export function parsePropertySearch(query: string): SearchIntent {
   const remove = (pattern: RegExp, consume: (...args: string[]) => void) => {
     remaining = remaining.replace(pattern, (...args) => { consume(...args); return " "; });
   };
-  remove(/\b(at least\s+)?(\d+|one|two|three|four|five|six)\s*(\+)?[ -]?(?:bedrooms?|beds?|bhk)\b/i, (_full, minimum, value, plus) => {
+  remove(/\b(at least\s+)?(\d+|one|two|three|four|five|six)\s*(\+)?[ -]?(?:bedrooms?|beds?|bhk|br)\b/i, (_full, minimum, value, plus) => {
     intent.bedrooms = numberWords[value] ?? Number(value); intent.minimumBedrooms = Boolean(minimum || plus);
   });
   remove(new RegExp(`\\b(?:between|from)\\s+${amountPattern}\\s*(?:and|to|-)\\s*${amountPattern}`, "i"), (_full, first, firstUnit, second, secondUnit) => {
@@ -48,7 +52,7 @@ export function parsePropertySearch(query: string): SearchIntent {
   remove(new RegExp(`(?:\\b(?:over|above|more than|at least|min(?:imum)?)\\s*[:=]?\\s*|>=?\\s*)${amountPattern}`, "i"), (_full, value, unit) => { intent.minPrice = amount(value, unit); });
 
   remove(/\bstudios?\b/i, () => { intent.bedrooms = 0; intent.kind = "Apartment"; intent.propertyType = "RESIDENTIAL"; });
-  remove(/\b(?:for[ -]+rent|to rent|rentals?|renting|lease|leasing)\b/i, () => { intent.transactionType = "RENT"; });
+  remove(/\b(?:for[ -]+rent|to rent|rent|rentals?|renting|lease|leasing)\b/i, () => { intent.transactionType = "RENT"; });
   remove(/\b(?:for[ -]+sale|sales?|buy|buying|purchase)\b/i, () => { intent.transactionType = "SALE"; });
   remove(/\boff[ -]?plan\b/i, () => { intent.readiness = "OFFPLAN"; });
   remove(/\b(?:ready(?: to move)?|move[ -]in ready)\b/i, () => { intent.readiness = "READY"; });
@@ -59,7 +63,7 @@ export function parsePropertySearch(query: string): SearchIntent {
   }
   remove(/\bcommercial(?: spaces?)?\b/i, () => { intent.propertyType = "COMMERCIAL"; });
   remove(/\bresidential\b/i, () => { intent.propertyType = "RESIDENTIAL"; });
-  remaining = remaining.replace(/\b(?:show|me|find|looking|for|a|an|the|i|want|need|please|properties|property|homes?|houses?|something|with|and|in|around|near|at|of|to|my|some)\b/g, " ");
+  remaining = remaining.replace(/\b(?:show|me|find|looking|for|a|an|the|i|want|need|please|properties|property|homes?|houses?|something|with|and|in|around|near|at|of|to|my|some|aed|per|year|yearly|annual|annually)\b/g, " ");
   intent.terms = [...new Set(tokens(remaining))];
   if (intent.transactionType) intent.labels.push(intent.transactionType === "RENT" ? "For rent" : "For sale");
   if (intent.kind) intent.labels.push(intent.kind);
