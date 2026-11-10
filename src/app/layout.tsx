@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { BrokBuddyProvider } from "@/context/BrokBuddyContext";
@@ -19,13 +21,29 @@ const geistMono = Geist_Mono({
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Arman Alam | Real Estate Broker",
-  description: "Browse Arman Alam's real estate listings for sale, rent, off-plan, and commercial properties.",
-};
+const readWebsiteData = cache(getBrokBuddyWebsiteData);
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const data = await readWebsiteData();
+    if (data) {
+      return {
+        title: `${data.broker.name} | Real Estate Broker`,
+        description: `Browse ${data.broker.name}'s real estate listings for sale, rent, off-plan, and commercial properties.`,
+      };
+    }
+  } catch {
+    // Unavailable upstream data must not leave identifying fallback metadata.
+  }
+  return {
+    title: "Website unavailable",
+    description: "This public website is currently unavailable.",
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const brokBuddyData = await getBrokBuddyWebsiteData();
+  const brokBuddyData = await readWebsiteData();
 
   return (
     <html
@@ -42,6 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </p>
             )}
             {brokBuddyData !== null && children}
+            {brokBuddyData !== null && <SiteFooter />}
           </BrokBuddyProvider>
         </CurrencyProvider>
       </body>

@@ -4,6 +4,9 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import PropertySearch from '@/components/PropertySearch';
+import { listingSearchHref, type ListingSort } from '@/lib/property-search';
 import { Search, SlidersHorizontal, LayoutGrid, List, ChevronDown, Bed, Bath, Square, Star, MapPin } from 'lucide-react';
 import BlurReveal from '@/components/ui/blur-reveal';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -13,21 +16,22 @@ const categories = ['All', 'For Buy', 'For Rent', 'Off-Plan', 'Commercial'];
 
 
 
-export default function ListingsView({ data, activeCategory }: { data: BrokBuddyListingsPage; activeCategory: ListingCategory }) {
+export default function ListingsView({ data, activeCategory, searchQuery = "", sort = "newest" }: { data: BrokBuddyListingsPage; activeCategory: ListingCategory; searchQuery?: string; sort?: ListingSort }) {
+  const router = useRouter();
   const { formatPrice } = useCurrency();
   const initialProperties = data.properties;
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState('newest');
+  const [showFilters, setShowFilters] = useState(false);
   const visibleProperties = initialProperties;
   const categoryRoutes: Record<string, string> = { All: '/listings', 'For Buy': '/sell', 'For Rent': '/rent', 'Off-Plan': '/off-plan', Commercial: '/commercial' };
-  const pageHref = (page: number) => `${categoryRoutes[activeCategory]}?page=${page}`;
+  const pageHref = (page: number, nextSort = sort) => listingSearchHref(categoryRoutes[activeCategory], page, searchQuery, nextSort);
 
   return (
     <div className="w-full bg-[#111812] min-h-screen font-sans text-neutral-900">
 
       {/* 1. HERO SECTION */}
-      <section className="relative pt-36 pb-28 text-center px-6 overflow-hidden">
+      <section className="relative pt-32 pb-14 sm:pt-40 sm:pb-20 text-center px-6 overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img
@@ -44,7 +48,7 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
           className="relative z-10 max-w-3xl mx-auto"
         >
           <BlurReveal as="h1" className="text-4xl sm:text-6xl font-bold text-white tracking-tight">
-            Home listings
+            {activeCategory === 'All' ? 'All listings' : activeCategory === 'For Buy' ? 'Properties for sale' : activeCategory === 'For Rent' ? 'Properties for rent' : activeCategory + ' properties'}
           </BlurReveal>
           <p className="text-neutral-400 text-sm sm:text-base mt-3 max-w-lg mx-auto">
             Browse real homes, weigh your options, and make your next move with confidence.
@@ -53,16 +57,17 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
       </section>
 
       {/* 2. MAIN CONTENT CONTAINER */}
-      <section className="bg-[#F6F6F4] py-16 px-6 md:px-12">
+      <section className="bg-[#F6F6F4] py-8 sm:py-14 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
+          <PropertySearch key={searchQuery} initialQuery={searchQuery} className="mb-8" />
 
           {/* Category Switcher Tabs */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8">
             {categories.map((cat) => (
               <Link
                 key={cat}
                 href={categoryRoutes[cat]}
-                className={`px-6 py-3 rounded-full text-sm font-semibold transition-all shadow-sm ${activeCategory === cat
+                className={`px-4 sm:px-6 py-3 rounded-full text-sm font-semibold transition-all shadow-sm ${activeCategory === cat
                   ? 'bg-[#111812] text-white'
                   : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200/60'
                   }`}
@@ -74,8 +79,11 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
+            <button type="button" className="flex min-h-12 items-center justify-between rounded-2xl border border-neutral-200 bg-white px-5 text-sm font-semibold lg:hidden" aria-expanded={showFilters} aria-controls="listing-filters" onClick={() => setShowFilters(!showFilters)}>
+              Filter listings <SlidersHorizontal className="h-4 w-4" />
+            </button>
             {/* LEFT SIDEBAR FILTER */}
-            <div className="lg:col-span-4 bg-white rounded-3xl p-6 shadow-sm border border-neutral-200/60 sticky top-24 space-y-6">
+            <div id="listing-filters" className={`${showFilters ? "block" : "hidden"} lg:block lg:col-span-4 min-w-0 bg-white rounded-3xl p-6 shadow-sm border border-neutral-200/60 lg:sticky lg:top-24 space-y-6`}>
               <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
                 <h3 className="font-bold text-base flex items-center gap-2">
                   <SlidersHorizontal className="w-4 h-4" /> Filter Listings
@@ -95,7 +103,7 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
               {/* Status Tabs */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-neutral-600">Status</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 bg-neutral-100 p-1 rounded-2xl border border-neutral-200/60">
+                <div className="grid grid-cols-3 gap-1 bg-neutral-100 p-1 rounded-2xl border border-neutral-200/60">
                   {['All', 'Ready', 'Off-Plan'].map((st) => (
                     <button
                       key={st}
@@ -188,27 +196,26 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
             </div>
 
             {/* RIGHT CONTENT AREA */}
-            <div className="lg:col-span-8 space-y-6">
+            <div id="property-results" role="region" aria-label="Property results" className="lg:col-span-8 min-w-0 space-y-6">
 
               {/* Top Bar (Count, Sort, Grid/List Toggles) */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-neutral-200/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-neutral-200/60 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
                 <p className="text-xs font-medium text-neutral-500">
                   Showing <span className="font-bold text-neutral-900">{visibleProperties.length}</span> properties on this page ({data.total} total)
                 </p>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-between">
                   {/* Sorting Dropdown */}
                   <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                    value={sort}
+                    onChange={(event) => router.push(pageHref(1, event.target.value as ListingSort), { scroll: false })}
                     className="bg-neutral-100 text-xs font-medium text-neutral-700 px-3 py-2 rounded-xl border border-neutral-200/60 focus:outline-none"
                   >
+                    {searchQuery && <option value="relevance">Sort by: Best match</option>}
                     <option value="newest">Sort by: Newest</option>
                     <option value="oldest">Sort by: Oldest</option>
-                    <option value="low-high">Price: Low to High</option>
-                    <option value="high-low">Price: High to Low</option>
-                    <option value="a-z">Name: A to Z</option>
-                    <option value="z-a">Name: Z to A</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
                   </select>
 
                   {/* Grid / List / Map View Toggle */}
@@ -242,13 +249,13 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
               {/* Property Cards Grid/List */}
               <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "space-y-6"}>
                 {visibleProperties.map((property) => (
-                  <Link href={`/listings/${property.id}`} key={property.id} className="block">
+                  <Link href={`/listings/${property.id}`} key={property.id} className="block min-w-0">
                     <motion.div
                       layout
-                      className={`bg-white rounded-3xl overflow-hidden shadow-sm border border-neutral-200/60 group flex ${viewMode === 'list' ? 'flex-col sm:flex-row' : 'flex-col'}`}
+                      className={`bg-white rounded-3xl overflow-hidden shadow-sm border border-neutral-200/60 group flex ${viewMode === 'list' ? 'flex-col md:flex-row' : 'flex-col'}`}
                     >
                       {/* Image Wrapper */}
-                      <div className={`relative ${viewMode === 'list' ? 'sm:w-72 h-64 sm:h-auto' : 'h-64 w-full'} overflow-hidden bg-neutral-100 shrink-0`}>
+                      <div className={`relative ${viewMode === 'list' ? 'md:w-56 h-56 md:h-auto' : 'h-64 w-full'} overflow-hidden bg-neutral-100 shrink-0`}>
                         <Image alt={property.title} className="object-cover group-hover:scale-105 transition-transform duration-500" fill src={property.image} unoptimized />
                         <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-neutral-800 shadow-sm">
                           {property.type}
@@ -257,7 +264,7 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
                       </div>
 
                       {/* Details */}
-                      <div className="p-6 flex flex-col justify-between flex-1">
+                      <div className="p-5 min-w-0 flex flex-col justify-between flex-1">
                         <div>
                           <div className="text-2xl font-black text-[#111812] mb-1">{formatPrice(property.price, property.currency)}</div>
                           <h4 className="font-bold text-lg text-neutral-900 transition-colors">{property.title}</h4>
@@ -277,7 +284,8 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
               </div>
               {visibleProperties.length === 0 && (
                 <p role="status" className="rounded-3xl border border-neutral-200 bg-white p-8 text-center text-neutral-600">
-                  There are no listings on this page. Please check back soon.
+                  {searchQuery ? 'No properties match this request. Try a wider budget, a different location, or fewer requirements.' : 'There are no listings on this page. Please check back soon.'}
+                  {searchQuery && <Link href="/listings" className="mt-4 block font-semibold text-neutral-900 underline underline-offset-4">Clear search and view all listings</Link>}
                 </p>
               )}
               <nav aria-label="Listing pagination" className="flex items-center justify-center gap-6 text-sm font-semibold">
@@ -292,17 +300,7 @@ export default function ListingsView({ data, activeCategory }: { data: BrokBuddy
         </div>
       </section>
 
-      {/* 3. FOOTER */}
-      <footer className="relative bg-[#111812] text-white pt-24 pb-0 overflow-hidden">
-        <div className="w-full overflow-hidden leading-none select-none text-center pointer-events-none mt-12">
-          <span
-            className="text-[18vw] font-black tracking-tighter text-transparent block -mb-8"
-            style={{ WebkitTextStroke: '1px rgba(255,255,255,0.1)' }}
-          >
-            Arman Alam
-          </span>
-        </div>
-      </footer>
+
     </div>
   );
 }

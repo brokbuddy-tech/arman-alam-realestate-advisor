@@ -4,17 +4,21 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Bed, Bath, Square, Star, CheckCircle2, ChevronDown, Send } from 'lucide-react';
+import { Bed, Bath, Square, Star, CheckCircle2, ChevronDown } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import type { Property } from '@/data/properties';
 import { getBrokerInitials } from '@/data/broker';
 import { useBrokBuddyData } from '@/context/BrokBuddyContext';
 import { BrochureButton } from '@/components/BrochureButton';
+import RichText from '@/components/RichText';
+import PropertyGallery from '@/components/PropertyGallery';
+import { isRentalProperty } from '@/lib/property';
 
 export default function PropertyDetail({ property }: { property: Property }) {
   const { formatPrice } = useCurrency();
   const { broker: scopedBroker, properties } = useBrokBuddyData();
   const broker = scopedBroker!;
+  const isRental = isRentalProperty(property);
 
   // Interactive Mortgage Calculator State
   const [priceOverride, setPriceOverride] = useState<{
@@ -52,50 +56,30 @@ export default function PropertyDetail({ property }: { property: Property }) {
     <div className="w-full bg-[#F6F6F4] min-h-screen font-sans text-neutral-900 pt-28">
       
       {/* 1. PHOTO GALLERY HEADER */}
-      <div className="max-w-7xl mx-auto px-6 mb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:h-[480px]">
-          {/* Main Large Image */}
-          <div className="lg:col-span-8 relative rounded-3xl overflow-hidden shadow-sm bg-neutral-200 h-[300px] sm:h-[400px] lg:h-full">
-            <Image alt={property.title} className="object-cover" fill src={property.image} unoptimized />
-          </div>
-          {/* Thumbnail Grid */}
-          <div className="lg:col-span-4 grid grid-cols-2 gap-4">
-            <div className="relative rounded-2xl overflow-hidden shadow-sm bg-neutral-200 h-[140px] sm:h-[200px] lg:h-[230px]">
-              <Image alt="Gallery 1" className="object-cover" fill src={property.gallery[0] ?? property.image} unoptimized />
-            </div>
-            <div className="relative rounded-2xl overflow-hidden shadow-sm bg-neutral-200 h-[140px] sm:h-[200px] lg:h-[230px]">
-              <Image alt="Gallery 2" className="object-cover" fill src={property.gallery[1] ?? property.image} unoptimized />
-            </div>
-            <div className="relative rounded-2xl overflow-hidden shadow-sm bg-neutral-200 h-[140px] sm:h-[200px] lg:h-[230px] col-span-2">
-              <Image alt="Gallery 3" className="object-cover" fill src={property.gallery[2] ?? property.image} unoptimized />
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-black/50 transition-colors">
-                {property.gallery.length} Photos Available
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-10">
+        <PropertyGallery key={property.id} title={property.title} images={property.gallery} fallback={property.image} />
       </div>
 
       {/* 2. MAIN CONTENT & SIDEBAR */}
-      <div className="max-w-7xl mx-auto px-6 pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
           {/* LEFT COLUMN: Property Info */}
-          <div className="lg:col-span-8 space-y-12">
+          <div className="lg:col-span-8 min-w-0 space-y-6">
             
             {/* Title & Price Header */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-neutral-200/60">
+            <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-sm border border-neutral-200/60">
               <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <div className="inline-flex items-center gap-2 bg-[#111812] text-white text-xs font-semibold px-3.5 py-1.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-[#FFDE02]" />
+                <div className="inline-flex max-w-full items-start gap-2 bg-[#111812] text-white text-xs font-semibold px-3.5 py-1.5 rounded-full">
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#FFDE02]" />
                   {property.address}
                 </div>
                 <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{property.status}</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-neutral-900 mb-4">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold [overflow-wrap:anywhere] tracking-tight text-neutral-900 mb-4">
                 {property.title}
               </h1>
-              <div className="inline-block bg-[#111812] text-[#FFDE02] text-2xl font-black px-6 py-3 rounded-2xl shadow-md">
+              <div className="inline-block bg-[#111812] text-[#FFDE02] max-w-full text-xl sm:text-2xl font-black px-4 sm:px-6 py-3 [overflow-wrap:anywhere] rounded-2xl shadow-md">
                 {formatPrice(property.price, property.currency)}
               </div>
 
@@ -121,17 +105,13 @@ export default function PropertyDetail({ property }: { property: Property }) {
             </div>
 
             {/* About Property */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-neutral-200/60 space-y-4">
+            <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-sm border border-neutral-200/60 space-y-4">
               <h3 className="text-xl font-bold text-neutral-900">About Property</h3>
-              {property.description.map((para, i) => (
-                <p key={i} className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
-                  {para}
-                </p>
-              ))}
+              <RichText content={property.description.join('\n\n')} />
             </div>
 
             {/* Key Features & Amenities */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-neutral-200/60 space-y-6">
+            {property.amenities.length > 0 && <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-sm border border-neutral-200/60 space-y-6">
               <h3 className="text-xl font-bold text-neutral-900">Key Features & Amenities</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {property.amenities.map((amenity, idx) => (
@@ -140,10 +120,10 @@ export default function PropertyDetail({ property }: { property: Property }) {
                   </div>
                 ))}
               </div>
-            </div>
+            </div>}
 
             {/* Interactive FAQ Accordion */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-neutral-200/60 space-y-4">
+            {property.faqs.length > 0 && <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-sm border border-neutral-200/60 space-y-4">
               <h3 className="text-xl font-bold text-neutral-900 mb-6">Frequently Asked Questions</h3>
               {property.faqs.map((faq, idx) => (
                 <div key={idx} className="border border-neutral-200/60 rounded-2xl overflow-hidden">
@@ -161,12 +141,12 @@ export default function PropertyDetail({ property }: { property: Property }) {
                   )}
                 </div>
               ))}
-            </div>
+            </div>}
 
             {/* Similar Properties Section */}
             <div className="pt-8 space-y-6">
               <h3 className="text-xl font-bold text-neutral-900 mb-2">Similar Properties</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-6">
                 {similarProperties.map((simProp) => (
                   <Link href={`/listings/${simProp.id}`} key={simProp.id} className="block">
                     <motion.div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-neutral-200/60 group flex flex-col h-full">
@@ -198,7 +178,7 @@ export default function PropertyDetail({ property }: { property: Property }) {
           </div>
 
           {/* RIGHT COLUMN: Sticky Sidebar (Agent Contact + Mortgage Calculator) */}
-          <div className="lg:col-span-4 space-y-8 sticky top-28">
+          <div className="lg:col-span-4 min-w-0 space-y-6 lg:sticky lg:top-28">
             
             {/* Trakheesi Permit Badge */}
             {property.permitNumber && <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-200/60 flex items-center justify-between">
@@ -213,7 +193,7 @@ export default function PropertyDetail({ property }: { property: Property }) {
 
             {/* Agent Contact Card */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-200/60 space-y-6">
-              <div className="flex items-center gap-4 pb-6 border-b border-neutral-100">
+              <div className="flex min-w-0 items-start gap-4 pb-6 border-b border-neutral-100">
                 <div className="w-14 h-14 rounded-full shrink-0 bg-[#111812] text-[#FFDE02] flex items-center justify-center font-bold">
                   {getBrokerInitials(broker.name)}
                 </div>
@@ -223,37 +203,21 @@ export default function PropertyDetail({ property }: { property: Property }) {
                 </div>
               </div>
 
-              {/* Inquiry Form */}
-              <form onSubmit={(e) => { e.preventDefault(); alert('Inquiry sent successfully!'); }} className="space-y-4">
-                <div>
-                  <label className="text-[11px] font-semibold text-neutral-600 block mb-1">Full Name</label>
-                  <input type="text" placeholder="John Doe" required className="w-full bg-neutral-50 border border-neutral-200/60 rounded-xl px-3 py-2.5 text-xs text-neutral-900 focus:outline-none"/>
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-neutral-600 block mb-1">Email Address</label>
-                  <input type="email" placeholder="john@example.com" required className="w-full bg-neutral-50 border border-neutral-200/60 rounded-xl px-3 py-2.5 text-xs text-neutral-900 focus:outline-none"/>
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-neutral-600 block mb-1">Phone Number</label>
-                  <input type="tel" placeholder="+1 (555) 000-0000" required className="w-full bg-neutral-50 border border-neutral-200/60 rounded-xl px-3 py-2.5 text-xs text-neutral-900 focus:outline-none"/>
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-neutral-600 block mb-1">Message</label>
-                  <textarea rows={3} placeholder="I am interested in this property..." className="w-full bg-neutral-50 border border-neutral-200/60 rounded-xl px-3 py-2.5 text-xs text-neutral-900 focus:outline-none resize-none"></textarea>
-                </div>
-                <button type="submit" className="w-full bg-[#111812] text-white py-3 rounded-xl text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm flex items-center justify-center gap-2">
-                  <Send className="w-3.5 h-3.5"/> Send Inquiry
-                </button>
-              </form>
+              <div className="flex flex-col gap-3 text-sm">
+                {broker.brn && <p className="text-xs font-semibold text-neutral-500">BRN {broker.brn}</p>}
+                {broker.phone && <a href={`tel:${broker.phone}`} className="font-semibold hover:underline">{broker.phone}</a>}
+                {broker.email && <a href={`mailto:${broker.email}`} className="[overflow-wrap:anywhere] hover:underline">{broker.email}</a>}
+                {broker.whatsapp && <a href={`https://wa.me/${broker.whatsapp.replace(/\D/g, '')}`} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#FFDE02] px-4 py-3 text-sm font-bold">Enquire on WhatsApp ↗</a>}
+              </div>
             </div>
 
             {/* Mortgage Calculator Widget */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-200/60 space-y-6">
+            {!isRental && <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-200/60 space-y-6">
               <h4 className="font-bold text-sm text-neutral-900">Mortgage Calculator</h4>
               
               <div className="space-y-4 text-xs font-medium text-neutral-600">
                 <div>
-                  <div className="flex justify-between mb-1">
+                  <div className="flex flex-wrap justify-between gap-2 mb-1">
                     <span>Property Price</span>
                     <strong className="text-neutral-900">{formatPrice(propertyPrice, property.currency)}</strong>
                   </div>
@@ -261,7 +225,7 @@ export default function PropertyDetail({ property }: { property: Property }) {
                 </div>
 
                 <div>
-                  <div className="flex justify-between mb-1">
+                  <div className="flex flex-wrap justify-between gap-2 mb-1">
                     <span>Down Payment</span>
                     <strong className="text-neutral-900">{downPayment}% ({formatPrice(propertyPrice * downPayment / 100, property.currency)})</strong>
                   </div>
@@ -269,7 +233,7 @@ export default function PropertyDetail({ property }: { property: Property }) {
                 </div>
 
                 <div>
-                  <div className="flex justify-between mb-1">
+                  <div className="flex flex-wrap justify-between gap-2 mb-1">
                     <span>Loan Term</span>
                     <strong className="text-neutral-900">{loanTerm} Years</strong>
                   </div>
@@ -282,7 +246,7 @@ export default function PropertyDetail({ property }: { property: Property }) {
                 <span className="text-[11px] text-neutral-400 block uppercase tracking-wider">Estimated Monthly Payment</span>
                 <div className="text-2xl font-black text-[#FFDE02]">{formatPrice(monthlyPayment, property.currency)} / Mo</div>
               </div>
-            </div>
+            </div>}
 
           </div>
 

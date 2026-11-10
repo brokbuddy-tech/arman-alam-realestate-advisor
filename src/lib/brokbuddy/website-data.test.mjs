@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { getBrokBuddyWebsiteData, getBrokBuddyListings, getBrokBuddyListing } from "./website-data.ts";
+import { getBrokBuddyWebsiteData, getBrokBuddyListings, getBrokBuddyListing, searchBrokBuddyListings } from "./website-data.ts";
 
 // Synthetic fixtures only. Never read an operator's .env file in tests.
 const code = "0123456789abcdef0123456789abcdef";
@@ -102,7 +102,7 @@ test("profile, pagination, and direct detail all use the same broker and header 
 });
 
 test("category filters and page number remain on the broker-scoped endpoint", async () => {
-  const filters = { "For Buy": ["transactionType", "SALE"], "For Rent": ["transactionType", "RENT"], "Off-Plan": ["readiness", "OFFPLAN"], Commercial: ["category", "Commercial"] };
+  const filters = { "For Buy": ["transactionType", "SALE"], "For Rent": ["transactionType", "RENT"], "Off-Plan": ["readiness", "OFFPLAN"], Commercial: ["propertyType", "COMMERCIAL"] };
   for (const [category, [key, value]] of Object.entries(filters)) {
     globalThis.fetch = async (input) => {
       const url = new URL(input);
@@ -129,6 +129,10 @@ test("invalid, revoked, rate-limited, and failed responses fail closed on every 
       return new Response("untrusted body must not be shown", { status });
     };
     for (const load of [getBrokBuddyWebsiteData, getBrokBuddyListings, () => getBrokBuddyListing("listing-1")]) {
+      if (status === 404 && load === getBrokBuddyWebsiteData) {
+        assert.equal(await load(), null);
+        continue;
+      }
       await assert.rejects(load(), (error) => {
         assert.equal(error.message, `BrokBuddy broker request failed (${status}).`);
         return true;
@@ -211,4 +215,68 @@ test("server modules are guarded and route entry points keep feed calls on the s
     assert.doesNotMatch(source, /use client/);
     assert.match(source, /BrokerListingsPage searchParams=\{searchParams\}/);
   }
+});
+
+test("normalizes HTML and Markdown at the server boundary and retains rental transaction scope", async () => {
+  const payload = profile({ bio: "<div>## About the broker</div><div><strong>Public biography</strong></div>" });
+  payload.activeListings = [listing({
+    transactionType: "RENT", category: "Commercial",
+    title: "<strong>Commercial office</strong>",
+    description: "&lt;div&gt;## Property overview&lt;/div&gt;&lt;div&gt;A &lt;b&gt;bright&lt;/b&gt; office.&lt;/div&gt;",
+    amenities: ["<b>Parking</b>"],
+  })];
+  respond(payload);
+  const result = await getBrokBuddyWebsiteData();
+  assert.equal(result.properties[0].title, "Commercial office");
+  assert.equal(result.properties[0].category, "Commercial");
+  assert.equal(result.properties[0].transactionType, "RENT");
+  assert.match(result.properties[0].description[0], /^## Property overview/);
+  assert.match(result.properties[0].description[0], /\*\*bright\*\*/);
+  assert.doesNotMatch(result.properties[0].description[0], /&lt;|<\/?div>/);
+  assert.deepEqual(result.properties[0].amenities, ["Parking"]);
+  assert.match(result.broker.bio, /^## About the broker/);
+});
+
+test("natural-language search scans beyond the preview and first API page while retaining broker scope", async () => {
+ const calls=[];
+ globalThis.fetch=async(input,options)=>{
+  const url=new URL(input);calls.push(url);
+  assert.equal(url.pathname,`/api/public/broker-template/${slug}/listings`);
+  assert.equal(options.headers["X-BrokBuddy-Broker-Code"]===code,true);
+  assert.equal(url.searchParams.get("limit"),"100");
+  assert.equal(url.searchParams.get("transactionType"),"RENT");
+  assert.equal(url.searchParams.get("propertyType"),"RESIDENTIAL");
+  const page=Number(url.searchParams.get("page"));
+  const listings=page===1?Array.from({length:100},(_,i)=>listing({id:`apt-${i}`,title:"Apartment in Ajman",propertyType:"RESIDENTIAL",transactionType:"RENT",price:19000})):Array.from({length:5},(_,i)=>listing({id:`villa-${i}`,title:"Villa in Ajman",propertyType:"RESIDENTIAL",transactionType:"RENT",price:19000}));
+  return Response.json({listings,total:105,page,totalPages:2});
+ };
+ const result=await searchBrokBuddyListings("rental villas under 20k");
+ assert.equal(calls.length,2);assert.equal(result.total,5);assert.equal(result.properties.length,5);
+ assert.ok(result.properties.every(item=>String(item.id).startsWith("villa-")));
+});
+
+test("search result pagination, no-match states, and sorting use the complete matching inventory", async () => {
+ const listings=Array.from({length:25},(_,i)=>listing({id:`match-${i+1}`,title:"Apartment in Ajman",propertyType:"RESIDENTIAL",transactionType:"RENT",price:25000-i*100}));
+ respond({listings,total:25,page:1,totalPages:1});
+ const page=await searchBrokBuddyListings("rental apartments in Ajman",2);
+ assert.equal(page.total,25);assert.equal(page.totalPages,3);assert.equal(page.properties.length,12);assert.equal(page.properties[0].id,"match-13");
+ const sorted=await searchBrokBuddyListings("rental apartments",1,"All","price-asc");assert.equal(sorted.properties[0].id,"match-25");
+ const empty=await searchBrokBuddyListings("unicorn");assert.equal(empty.total,0);assert.deepEqual(empty.properties,[]);
+});
+
+test("a later search page error cannot turn partial matches into a successful feed", async () => {
+ let count=0;
+ globalThis.fetch=async()=>{
+  count++;
+  return count===1?Response.json({listings:[listing()],total:101,page:1,totalPages:2}):new Response("revoked",{status:404});
+ };
+ await assert.rejects(searchBrokBuddyListings("apartment"),/request failed \(404\)/);
+ assert.equal(count,2);
+});
+
+test("search rejects cross-broker results and deduplicates gallery URLs", async () => {
+ respond({listings:[listing({agent:{slug:"other-broker"}})],total:1,page:1,totalPages:1});
+ await assert.rejects(searchBrokBuddyListings("apartment"),/outside the configured broker scope/);
+ respond(listing({images:[{url:asset},{url:asset},{url:"gs://internal/path"}]}));
+ const detail=await getBrokBuddyListing("listing-1");assert.equal(detail.gallery.length,1);
 });

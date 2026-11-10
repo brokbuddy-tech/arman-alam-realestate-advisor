@@ -203,7 +203,7 @@ export default function MapPage() {
             </div>
 
             {/* Category Selector */}
-            <div className="md:col-span-4 flex items-center bg-neutral-100 p-1 rounded-2xl border border-neutral-200/60 overflow-x-auto">
+            <div className="md:col-span-4 min-w-0 flex items-center bg-neutral-100 p-1 rounded-2xl border border-neutral-200/60 overflow-x-auto">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -268,12 +268,12 @@ export default function MapPage() {
 
       {/* 2. MAIN MAP & LIST DISPLAY */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start h-[calc(100vh-280px)] min-h-[600px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start lg:h-[calc(100vh-280px)] lg:min-h-[600px]">
           {/* LEFT LIST PANEL */}
           {(viewMode === 'split' || viewMode === 'list') && (
             <div
               ref={cardListRef}
-              className={`h-full overflow-y-auto pr-1 space-y-4 ${
+              className={`min-w-0 lg:h-full lg:overflow-y-auto pr-1 space-y-4 ${
                 viewMode === 'split' ? 'lg:col-span-6' : 'lg:col-span-12'
               }`}
             >
@@ -456,7 +456,7 @@ export default function MapPage() {
           {/* RIGHT MAP PANEL */}
           {(viewMode === 'split' || viewMode === 'map') && (
             <div
-              className={`h-full sticky top-24 ${
+              className={`order-first lg:order-none min-w-0 h-[55dvh] min-h-[320px] lg:h-full lg:sticky lg:top-24 ${
                 viewMode === 'split' ? 'lg:col-span-6' : 'lg:col-span-12'
               }`}
             >

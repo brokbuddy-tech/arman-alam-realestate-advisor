@@ -12,12 +12,16 @@ const symbols: Record<Currency, string> = {
   EUR: '€',
 };
 
+export function convertPrice(price: number, sourceCurrency: Currency, currency: Currency): number {
+  return (price / rates[sourceCurrency]) * rates[currency];
+}
+
 export function formatPrice(
   price: number,
   currency: Currency,
   sourceCurrency: Currency = 'USD',
 ): string {
-  const converted = (price / rates[sourceCurrency]) * rates[currency];
+  const converted = convertPrice(price, sourceCurrency, currency);
   return `${symbols[currency]}${converted.toLocaleString('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,

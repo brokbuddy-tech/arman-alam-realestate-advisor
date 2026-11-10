@@ -1,4 +1,7 @@
 import "server-only";
+import { normalizeRichText, normalizePlainText } from "../rich-text.ts";
+import { parsePropertySearch, matchesPropertySearch, searchRelevance, type ListingSort } from "../property-search.ts";
+import { convertPrice } from "../currency.ts";
 
 import type { BrokerProfile } from "@/data/broker";
 import type { Property } from "@/data/properties";
@@ -40,7 +43,7 @@ function numberValue(value: unknown): number | null {
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map(normalizePlainText).filter(Boolean)
     : [];
 }
 
@@ -90,15 +93,15 @@ function mapProperty(value: unknown, brokerProfileSlug: string, apiBaseUrl: stri
   }
 
   const id = stringValue(value.id);
-  const title = stringValue(value.title);
+  const title = stringValue(value.title) ? normalizePlainText(value.title as string) : null;
   if (!id || !/^[a-zA-Z0-9_-]+$/.test(id) || !title) {
     throw new Error("BrokBuddy returned an invalid listing.");
   }
 
   const images = Array.isArray(value.images) ? value.images : [];
-  const gallery = images
+  const gallery = [...new Set(images
     .map((image) => (isRecord(image) ? publicAssetUrl(image.url, apiBaseUrl) : null))
-    .filter((image): image is string => image !== null);
+    .filter((image): image is string => image !== null))];
   const coordinates = isRecord(value.coordinates) ? value.coordinates : {};
   const latitude = numberValue(value.latitude ?? coordinates.lat ?? coordinates.latitude);
   const longitude = numberValue(value.longitude ?? coordinates.lng ?? coordinates.longitude);
@@ -124,16 +127,16 @@ function mapProperty(value: unknown, brokerProfileSlug: string, apiBaseUrl: stri
   }
 
   const size = numberValue(value.builtUpArea);
-  const description = stringValue(value.description);
+  const description = normalizeRichText(stringValue(value.description));
   const amenities = stringArray(value.amenities);
 
   return {
     id,
     title,
-    type: propertyType,
+    type: normalizePlainText(propertyType),
     price,
-    address: stringValue(value.mapAddress) ?? stringValue(value.address) ?? [area, city].filter(Boolean).join(", "),
-    location: [area, city].filter(Boolean).join(", "),
+    address: normalizePlainText(stringValue(value.mapAddress) ?? stringValue(value.address) ?? [area, city].filter(Boolean).join(", ")),
+    location: normalizePlainText([area, city].filter(Boolean).join(", ")),
     coordinates: { lat: latitude, lng: longitude },
     beds: numberValue(value.bedrooms),
     baths: numberValue(value.bathrooms),
@@ -142,20 +145,30 @@ function mapProperty(value: unknown, brokerProfileSlug: string, apiBaseUrl: stri
     status: readiness === "OFFPLAN" ? "Off-Plan" : stringValue(value.status) ?? "Available",
     permitNumber: stringValue(value.trakheesiPermitNumber),
     category,
+    transactionType: transactionType === "RENT" || transactionType === "SALE" ? transactionType : undefined,
     image: gallery[0] ?? "/arman-property-advisor-logo.png",
     gallery,
     description: description ? [description] : [],
     amenities,
     faqs: [],
     agent: {
-      name: stringValue(agent.name) ?? "Real Estate Broker",
-      role: stringValue(agent.title) ?? "Real Estate Broker",
+      name: normalizePlainText(stringValue(agent.name) ?? "Real Estate Broker"),
+      role: normalizePlainText(stringValue(agent.title) ?? "Real Estate Broker"),
       rating: null,
       reviews: null,
       image: publicAssetUrl(agent.avatar, apiBaseUrl) ?? "/arman-property-advisor-logo.png",
     },
     currency,
   };
+}
+
+class BrokerRequestError extends Error {
+  status: number;
+
+  constructor(status: number) {
+    super(`BrokBuddy broker request failed (${status}).`);
+    this.status = status;
+  }
 }
 
 async function requestBrokerData(config: BrokBuddyTemplateConfig, path = "", query?: URLSearchParams): Promise<unknown> {
@@ -180,7 +193,7 @@ async function requestBrokerData(config: BrokBuddyTemplateConfig, path = "", que
     throw new Error("Unable to reach the BrokBuddy broker data endpoint.");
   }
   if (!response.ok) {
-    throw new Error(`BrokBuddy broker request failed (${response.status}).`);
+    throw new BrokerRequestError(response.status);
   }
 
   try {
@@ -199,7 +212,15 @@ function requireConfig(): BrokBuddyTemplateConfig {
 export async function getBrokBuddyWebsiteData(): Promise<BrokBuddyWebsiteData | null> {
   const config = getBrokBuddyTemplateConfig();
   if (!config) return null;
-  const payload = await requestBrokerData(config);
+  let payload: unknown;
+  try {
+    payload = await requestBrokerData(config);
+  } catch (error) {
+    // Unpublished or revoked profiles render the neutral unavailable surface.
+    // Do not display local fallback branding or retry a broader public feed.
+    if (error instanceof BrokerRequestError && error.status === 404) return null;
+    throw error;
+  }
   if (!isRecord(payload) || !isRecord(payload.agent) || !Array.isArray(payload.activeListings)) {
     throw new Error("BrokBuddy returned an invalid broker response.");
   }
@@ -222,9 +243,9 @@ export async function getBrokBuddyWebsiteData(): Promise<BrokBuddyWebsiteData | 
 
   const listingCount = numberValue(upstreamAgent.totalListings);
   const profile: BrokerProfile = {
-    name: brokerName,
-    role: stringValue(upstreamAgent.title) ?? "Real Estate Broker",
-    bio: stringValue(upstreamAgent.bio),
+    name: normalizePlainText(brokerName),
+    role: normalizePlainText(stringValue(upstreamAgent.title) ?? "Real Estate Broker"),
+    bio: normalizeRichText(stringValue(upstreamAgent.bio)) || null,
     photoUrl: publicAssetUrl(upstreamAgent.avatar, config.apiBaseUrl),
     specializations: stringArray(upstreamAgent.specializations),
     languages: stringArray(upstreamAgent.languages),
@@ -251,6 +272,7 @@ export async function getBrokBuddyWebsiteData(): Promise<BrokBuddyWebsiteData | 
 export async function getBrokBuddyListings(
   page = 1,
   category: ListingCategory = "All",
+  sort: ListingSort = "newest",
 ): Promise<BrokBuddyListingsPage> {
   const config = requireConfig();
   if (!Number.isSafeInteger(page) || page < 1) throw new Error("Invalid listing page.");
@@ -258,7 +280,8 @@ export async function getBrokBuddyListings(
   if (category === "For Buy") query.set("transactionType", "SALE");
   if (category === "For Rent") query.set("transactionType", "RENT");
   if (category === "Off-Plan") query.set("readiness", "OFFPLAN");
-  if (category === "Commercial") query.set("category", "Commercial");
+  if (category === "Commercial") query.set("propertyType", "COMMERCIAL");
+  if (sort !== "newest" && sort !== "relevance") query.set("sort", sort);
   const payload = await requestBrokerData(config, "/listings", query);
   if (
     !isRecord(payload) || !Array.isArray(payload.listings) ||
@@ -272,6 +295,63 @@ export async function getBrokBuddyListings(
     page,
     totalPages: payload.totalPages as number,
   };
+}
+
+export async function searchBrokBuddyListings(
+  text: string,
+  page = 1,
+  category: ListingCategory = "All",
+  sort: ListingSort = "relevance",
+): Promise<BrokBuddyListingsPage> {
+  const config = requireConfig();
+  if (!Number.isSafeInteger(page) || page < 1 || text.length > 240) throw new Error("Invalid property search.");
+  const intent = parsePropertySearch(text);
+  const query = new URLSearchParams({ limit: "100" });
+  if (intent.transactionType) query.set("transactionType", intent.transactionType);
+  if (intent.propertyType) query.set("propertyType", intent.propertyType);
+  if (intent.bedrooms !== undefined && !intent.minimumBedrooms) query.set("bedrooms", String(intent.bedrooms));
+  if (intent.readiness) query.set("readiness", intent.readiness);
+  if (category === "For Buy") query.set("transactionType", "SALE");
+  if (category === "For Rent") query.set("transactionType", "RENT");
+  if (category === "Commercial") query.set("propertyType", "COMMERCIAL");
+  if (category === "Off-Plan") query.set("readiness", "OFFPLAN");
+  if (sort !== "relevance") query.set("sort", sort);
+
+  async function readPage(number: number) {
+    const params = new URLSearchParams(query);
+    params.set("page", String(number));
+    const payload = await requestBrokerData(config, "/listings", params);
+    if (!isRecord(payload) || !Array.isArray(payload.listings) || payload.listings.length > 100 ||
+      payload.page !== number || !Number.isSafeInteger(payload.total) || (payload.total as number) < 0 ||
+      !Number.isSafeInteger(payload.totalPages) || (payload.totalPages as number) < 1 || (payload.totalPages as number) > 50
+    ) throw new Error("BrokBuddy returned an invalid search response.");
+    return {
+      properties: payload.listings.map((listing) => mapProperty(listing, config.brokerProfileSlug, config.apiBaseUrl)),
+      totalPages: payload.totalPages as number,
+    };
+  }
+
+  // Match the complete public inventory, including listings beyond profile previews.
+  // Price comparisons happen in AED so USD/EUR listing amounts remain comparable.
+  const first = await readPage(1);
+  const inventory = [...first.properties];
+  for (let start = 2; start <= first.totalPages; start += 4) {
+    const pages = await Promise.all(Array.from({ length: Math.min(4, first.totalPages - start + 1) }, (_, index) => readPage(start + index)));
+    for (const result of pages) inventory.push(...result.properties);
+  }
+  const unique = [...new Map(inventory.map((property) => [property.id, property])).values()];
+  const matches = unique.filter((property) => {
+    if (category === "For Buy" && property.transactionType !== "SALE") return false;
+    if (category === "For Rent" && property.transactionType !== "RENT") return false;
+    if (category === "Commercial" && property.category !== "Commercial") return false;
+    if (category === "Off-Plan" && property.status !== "Off-Plan") return false;
+    return matchesPropertySearch(property, intent);
+  });
+  const price = (property: Property) => convertPrice(property.price, property.currency ?? "AED", "AED");
+  if (sort === "price-asc") matches.sort((a, b) => price(a) - price(b));
+  if (sort === "price-desc") matches.sort((a, b) => price(b) - price(a));
+  if (sort === "relevance") matches.sort((a, b) => searchRelevance(b, intent) - searchRelevance(a, intent));
+  return { properties: matches.slice((page - 1) * 12, page * 12), total: matches.length, page, totalPages: Math.max(1, Math.ceil(matches.length / 12)) };
 }
 
 export async function getBrokBuddyListing(id: string): Promise<Property> {

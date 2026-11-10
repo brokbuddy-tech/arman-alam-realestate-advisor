@@ -29,7 +29,8 @@ requires a Next.js server runtime and does not support a static export. Feed
 requests use `no-store` and pages render dynamically so rotation and revocation
 are checked on subsequent requests. Already open pages refresh on reload.
 
-The home profile and map use the API’s active listing preview (up to 18 listings).
+The home profile shows at most six listings from the API’s active listing preview,
+with a link to the full inventory. The map uses the active preview (up to 18 listings).
 All-listing and category pages request paginated data, 12 per page, with the
 category applied upstream. Category navigation resets pagination. Detail pages
 always request the same broker-scoped detail endpoint, including on a direct visit.
@@ -116,3 +117,57 @@ code, send its value through stdin instead of putting it in command arguments.
 References: [Vercel CLI deployment](https://vercel.com/docs/cli/deploy),
 [Config and Secret variables](https://vercel.com/docs/environment-variables/sensitive-environment-variables),
 and [excluding deployment files](https://vercel.com/docs/deployments/vercel-ignore).
+
+## Responsive display and descriptions
+
+The top-right menu contains navigation, broker contact details, and display
+currency controls. Prices default to AED; changing the display currency keeps the
+upstream listing currency intact for conversion. The shared footer displays the
+broker's public BRN and contact fields on every page when they are configured.
+Mortgage calculations are hidden for all rental transactions, including
+commercial rentals.
+
+The server normalizes legacy HTML wrappers and escaped HTML into Markdown before
+passing descriptions and biography text to the browser. The renderer supports
+paragraphs, headings, emphasis, lists, and tables while rejecting raw HTML,
+embedded media, and unsafe link protocols. The same description renderer is used
+in property details and brochures. Text normalization and rental detection are
+covered by `npm test`; responsive layouts and menu interactions are also checked
+in Chromium at phone, tablet, and desktop widths.
+
+## Natural-language property matching
+
+The search bar on the profile and listing pages translates requests such as
+`rental villas under 20k` or `two bedroom flats in Ajman` into matching rules for
+transaction, property type, bedrooms, price, and location words. This is a
+rule-based natural-language matcher with an animated search interface; it does
+not call an external AI model or require another API key.
+
+Search reads the complete broker-scoped public listing result in pages of at most
+100 items, then matches and paginates the results in groups of 12. Budgets are
+compared in AED using the existing currency conversion rates. Category, sorting,
+and page navigation retain broker scope; search pagination retains the original
+request. Errors on any upstream page fail the search instead of returning a
+partial successful feed. Searches exceeding 50 upstream pages fail explicitly.
+
+Photo counts come from unique public image URLs returned for each listing. The
+photo control opens a keyboard-accessible viewer with previous/next controls.
+Listings with no photos show an unavailable placeholder, without counting the
+site logo as a listing photo.
+
+## Contact enquiries
+
+The navbar's **Contact us** button opens a validated enquiry form on desktop and
+inside the mobile menu. `/contact` provides the same form as a standalone page.
+Messages post to the website's same-origin `/api/contact` route. The server first
+verifies the configured broker-template feed/code, then submits to the existing
+`POST /api/public/broker/{slug}/inquiry` endpoint using the operator-configured
+broker slug. The template code is never sent by the browser or attached to the
+public enquiry POST.
+
+The proxy returns only a delivery confirmation, validates fields and request
+size, checks the website origin, preserves idempotency keys for safe retries,
+and surfaces API errors without showing a false success state. It requires no
+additional email-provider keys. Enquiries enter BrokBuddy through its existing
+broker inquiry flow; the UI does not claim an email has been sent. Automated
+submission tests use mocked APIs and synthetic contact details.

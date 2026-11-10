@@ -52,3 +52,71 @@ body {
   font-family: inherit !important;
 }
 
+
+html {
+  scroll-padding-top: 6rem;
+}
+
+body {
+  margin: 0;
+  min-width: 0;
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #a78f00;
+  outline-offset: 4px;
+}
+
+.rich-text {
+  color: #525252;
+  font-size: 0.9375rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.rich-text > :first-child { margin-top: 0; }
+.rich-text > :last-child { margin-bottom: 0; }
+.rich-text p { margin: 0 0 1rem; white-space: pre-line; }
+.rich-text :is(h3, h4, h5, h6) { margin: 1.5rem 0 0.65rem; color: #111812; font-size: 1.125rem; font-weight: 700; line-height: 1.4; }
+.rich-text strong { color: #111812; font-weight: 650; }
+.rich-text :is(ul, ol) { margin: 0.75rem 0 1.25rem; padding-left: 1.5rem; }
+.rich-text ul { list-style: disc; }
+.rich-text ol { list-style: decimal; }
+.rich-text li { padding-left: 0.25rem; margin: 0.35rem 0; }
+.rich-text li > p { margin: 0; }
+.rich-text a { text-decoration: underline; text-underline-offset: 3px; }
+.rich-text blockquote { margin: 1.25rem 0; border-left: 3px solid #d4b800; padding-left: 1rem; }
+.rich-text pre { max-width: 100%; overflow-x: auto; border-radius: 0.75rem; background: #f1f1ed; padding: 1rem; }
+.rich-text code { font-size: 0.85em; }
+.rich-text table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+.rich-text :is(th, td) { border: 1px solid #d4d4d4; padding: 0.5rem 0.75rem; text-align: left; }
+.rich-text hr { margin: 1.5rem 0; border-color: #d4d4d4; }
+.rich-text-dark { color: #b3b8b1; }
+.rich-text-dark :is(h3, h4, h5, h6, strong) { color: #fff; }
+.rich-text-dark pre { background: #243025; }
+
+.profile-bio p {
+  text-align: justify;
+  text-align-last: left;
+  white-space: normal;
+  hyphens: auto;
+}
+
+@media (max-width: 639px) {
+  input:not([type="radio"]):not([type="range"]):not([type="checkbox"]), select, textarea { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+.property-search-pending .search-glow {
+  animation: search-glow 2s ease-in-out infinite alternate;
+}
+.search-scan { animation: search-scan 1.8s ease-in-out infinite; }
+@keyframes search-scan {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(400%); }
+}
+@keyframes search-glow {
+  from { opacity: 0.5; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1.15); }
+}

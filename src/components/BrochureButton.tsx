@@ -3,7 +3,8 @@
 import React, { useRef, useState } from 'react';
 import { Download, MapPin, Bed, Bath, Square, CheckCircle2, QrCode } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
-import { broker } from '@/data/broker';
+import RichText from '@/components/RichText';
+import { broker, getBrokerInitials } from '@/data/broker';
 import { useBrokBuddyData } from '@/context/BrokBuddyContext';
 import type { Property } from '@/data/properties';
 
@@ -29,7 +30,7 @@ export function BrochureButton({ property }: { property: Property }) {
       const canvas = await html2canvas(element, {
         scale: 2, 
         useCORS: true,
-        logging: true,
+        logging: false,
         backgroundColor: '#ffffff'
       });
       
@@ -65,7 +66,7 @@ export function BrochureButton({ property }: { property: Property }) {
       </button>
 
       {/* Hidden Brochure Layout (A4 Dimensions: 794px x 1123px) */}
-      <div className="fixed top-0 left-0 w-[794px] h-[1123px] opacity-0 pointer-events-none z-[-1] overflow-hidden">
+      <div aria-hidden="true" inert className="fixed top-0 -left-[10000px] w-[794px] h-[1123px] opacity-0 pointer-events-none z-[-1] overflow-hidden">
         <div 
           ref={brochureRef} 
           className="w-[794px] h-[1123px] bg-white relative flex flex-col font-sans"
@@ -135,9 +136,7 @@ export function BrochureButton({ property }: { property: Property }) {
               <div className="flex-1 space-y-6">
                 <h3 className="text-2xl font-bold text-[#111812]">Property Overview</h3>
                 <div className="space-y-4 text-base text-neutral-600 leading-relaxed">
-                  {property.description.map((p: string, i: number) => (
-                    <p key={i}>{p}</p>
-                  ))}
+                  <RichText content={property.description.join('\n\n')} />
                 </div>
               </div>
               
@@ -166,13 +165,13 @@ export function BrochureButton({ property }: { property: Property }) {
                 AA
               </div>
               <div>
-                <h4 className="text-2xl font-bold mb-1">{broker.name}</h4>
-                <p className="text-[#FFDE02] font-semibold text-sm">{broker.role}</p>
+                <h4 className="text-2xl font-bold mb-1">{displayedBroker.name}</h4>
+                <p className="text-[#FFDE02] font-semibold text-sm">{displayedBroker.role}</p>
               </div>
             </div>
             <div className="text-right">
-              <h3 className="text-xl font-bold text-white mb-2">{broker.name}</h3>
-              <p className="text-sm text-neutral-400">{broker.role}</p>
+              <h3 className="text-xl font-bold text-white mb-2">{displayedBroker.name}</h3>
+              <p className="text-sm text-neutral-400">{displayedBroker.role}</p>
             </div>
           </div>
         </div>

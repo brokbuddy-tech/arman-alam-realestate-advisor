@@ -18,6 +18,7 @@ export interface Property {
   status: string;
   permitNumber?: string | null;
   category: string;
+  transactionType?: "SALE" | "RENT";
   image: string;
   gallery: string[];
   description: string[];
